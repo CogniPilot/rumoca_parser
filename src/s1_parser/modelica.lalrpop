@@ -1,0 +1,1294 @@
+// Based on Modelica 3.7-dev Specification
+use crate::s0_lexer::tokens::{Token, LexicalError};
+use crate::s1_parser::ast;
+
+grammar;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LALRPOP macros
+
+SeparatedList<T, Str>: Vec<T> = {
+    <mut v:(<T> Str)*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
+
+SeparatedListMinOne<T, Str>: Vec<T> = {
+    <e:T> <v:(Str <T>)*>  => {
+        let mut res = vec![e];
+        res.extend(v);
+        res
+    }
+};
+
+TerminatedList<T, Str>: Vec<T> = {
+    <v:(<T> Str)*> => v
+
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 2.3.3 Modelica Keywords
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+    enum Token {
+        // keywords
+        "algorithm" => Token::KeywordAlgorithm,
+        "and" => Token::KeywordAnd,
+        "annotation" => Token::KeywordAnnotation,
+        "block" => Token::KeywordBlock,
+        "break" => Token::KeywordBreak,
+        "class" => Token::KeywordClass,
+        "connect" => Token::KeywordConnect,
+        "connector" => Token::KeywordConnector,
+        "constant" => Token::KeywordConstant,
+        "constrainedby" => Token::KeywordConstrainedby,
+        "der" => Token::KeywordDer,
+        "discrete" => Token::KeywordDiscrete,
+        "each" => Token::KeywordEach,
+        "else" => Token::KeywordElse,
+        "elseif" => Token::KeywordElseif,
+        "elsewhen" => Token::KeywordElsewhen,
+        "encapsulated" => Token::KeywordEncapsulated,
+        "end" => Token::KeywordEnd,
+        "enumeration" => Token::KeywordEnumeration,
+        "equation" => Token::KeywordEquation,
+        "expandable" => Token::KeywordExpandable,
+        "extends" => Token::KeywordExtends,
+        "external" => Token::KeywordExternal,
+        "final" => Token::KeywordFinal,
+        "flow" => Token::KeywordFlow,
+        "for" => Token::KeywordFor,
+        "function" => Token::KeywordFunction,
+        "if" => Token::KeywordIf,
+        "import" => Token::KeywordImport,
+        "impure" => Token::KeywordImpure,
+        "in" => Token::KeywordIn,
+        "initial" => Token::KeywordInitial,
+        "inner" => Token::KeywordInner,
+        "input" => Token::KeywordInput,
+        "loop" => Token::KeywordLoop,
+        "model" => Token::KeywordModel,
+        "not" => Token::KeywordNot,
+        "operator" => Token::KeywordOperator,
+        "or" => Token::KeywordOr,
+        "outer" => Token::KeywordOuter,
+        "output" => Token::KeywordOutput,
+        "package" => Token::KeywordPackage,
+        "parameter" => Token::KeywordParameter,
+        "partial" => Token::KeywordPartial,
+        "protected" => Token::KeywordProtected,
+        "public" => Token::KeywordPublic,
+        "pure" => Token::KeywordPure,
+        "record" => Token::KeywordRecord,
+        "redeclare" => Token::KeywordRedeclare,
+        "replaceable" => Token::KeywordReplaceable,
+        "return" => Token::KeywordReturn,
+        "stream" => Token::KeywordStream,
+        "then" => Token::KeywordThen,
+        "type" => Token::KeywordType,
+        "when" => Token::KeywordWhen,
+        "while" => Token::KeywordWhile,
+        "within" => Token::KeywordWithin,
+
+        // other lexical tokens
+        "IDENT" => Token::Identifier(<String>),
+        "STRING" => Token::String(<String>),
+        "UNSIGNED-INTEGER" => Token::UnsignedInteger(<i64>),
+        "UNSIGNED-REAL" => Token::UnsignedReal(<f64>),
+        "boolean" => Token::Boolean(<bool>),
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "[" => Token::LBracket,
+        "]" => Token::RBracket,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+        ":=" => Token::Assign,
+        "=" => Token::Equal,
+        ";" => Token::Semicolon,
+        "." => Token::Period,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "+" => Token::OperatorAdd,
+        "-" => Token::OperatorSub,
+        "*" => Token::OperatorMul,
+        "/" => Token::OperatorDiv,
+        "^" => Token::OperatorExp,
+
+        ".+" => Token::OperatorElemAdd,
+        ".-" => Token::OperatorElemSub,
+        ".*" => Token::OperatorElemMul,
+        "./" => Token::OperatorElemDiv,
+        ".^" => Token::OperatorElemExp,
+
+        "<" => Token::OperatorLessThan,
+        "<=" => Token::OperatorLessThanOrEqual,
+        ">" => Token::OperatorGreaterThan,
+        ">=" => Token::OperatorGreaterThanOrEqual,
+        "==" => Token::OperatorEqual,
+        "<>" => Token::OperatorNotEqual,
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.1 Stored Definition – Within
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ stored-definition :
+//✅    [ within [ name ] ";" ]
+//✅    { [ final ] class-definition ";" }
+pub Within: ast::Within = {
+    <left: @L>"within" <name:Name> ";"<right: @R> => {
+        ast::Within {
+            span: ast::Span { left, right},
+            name,
+        }
+    }
+}
+pub StoredDefinition: ast::StoredDefinition = {
+    <left: @L>
+    <within: Within?>
+    <classes:TerminatedList<ClassDefinitionWithFinal, ";">>
+    <right: @R> => {
+        ast::StoredDefinition {
+            span: ast::Span { left, right},
+            classes,
+            within,
+            rumoca_git_hash: "".to_string(),
+            model_md5: "".to_string(),
+        }
+    }
+}
+
+pub ClassDefinitionWithFinal: ast::ClassDefinition = {
+    <is_final: "final"?> <mut class: ClassDefinition> => {
+        class.is_final = is_final.is_some();
+        class
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.2 Class Definition
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ class-definition :
+//✅    [ encapsulated ] class-prefixes class-specifier
+pub ClassDefinition: ast::ClassDefinition = {
+    <is_encapsulated: "encapsulated"?>
+    <class_prefixes: ClassPrefixes>
+    <class_specifier: ClassSpecifier> => {
+        ast::ClassDefinition {
+            is_final: false,
+            is_encapsulated: is_encapsulated.is_some(),
+            class_prefixes,
+            class_specifier,
+        }
+    }
+}
+//✅ class-prefixes :
+//✅    [ partial ]
+//✅    ( class
+//✅      | model
+//✅      | [ operator ] record
+//✅      | block
+//✅      | [ expandable ] connector
+//✅      | type
+//✅      | package
+//✅      | [ pure | impure ] [ operator ] function
+//✅      | operator
+//✅    )
+pub ClassPrefixes: ast::ClassPrefixes = {
+    <partial: "partial"?> <class_type: ClassType> => {
+        ast::ClassPrefixes {
+            is_partial: partial.is_some(),
+            class_type,
+        }
+    }
+}
+
+pub ClassType: ast::ClassType = {
+    "class" => ast::ClassType::Class,
+    "model" => ast::ClassType::Model,
+    "record" => ast::ClassType::Record,
+    "operator" "record" => ast::ClassType::OperatorRecord,
+    "block" => ast::ClassType::Block,
+    "expandable" "connector" => ast::ClassType::ExpandableConnector,
+    "connector" => ast::ClassType::Connector,
+    "type" => ast::ClassType::Type,
+    "package" => ast::ClassType::Package,
+    "pure" "function" => ast::ClassType::PureFunction,
+    "impure" "function" => ast::ClassType::ImpureFunction,
+    "operator" "function" => ast::ClassType::OperatorFunction,
+    "function" => ast::ClassType::Function,
+    "operator" => ast::ClassType::Operator,
+}
+
+//✅ class-specifier :
+//✅    long-class-specifier
+//🟥     | short-class-specifier
+//🟥     | der-class-specifier
+pub ClassSpecifier: ast::ClassSpecifier = {
+    <spec: LongClassSpecifier> => spec,
+}
+
+pub IDENT: String = {
+    <ident: "IDENT"> => ident,
+}
+
+//✅ long-class-specifier :
+//✅    IDENT description-string composition end IDENT
+//✅    | extends IDENT [ class-modification ] description-string composition end IDENT
+pub LongClassSpecifier: ast::ClassSpecifier = {
+    <name: IDENT>
+    <description: DescriptionString?>
+    <composition: Composition>
+    "end"
+    <name_end: IDENT> => {
+        ast::ClassSpecifier::Long {
+            name,
+            description: description.unwrap_or(Vec::new()),
+            composition,
+            name_end,
+        }
+    },
+    "extends" <name: IDENT>
+    <modification: ClassModification?>
+    <description: DescriptionString>
+    <composition: CompositionPart*>
+    "end" <name_end: IDENT> => {
+        ast::ClassSpecifier::Extends {
+            name,
+            modification,
+            description,
+            composition,
+            name_end,
+        }
+    }
+}
+
+//🟥 short-class-specifier :
+//🟥    IDENT "=" base-prefix type-specifier [ array-subscripts ] [ class-modification ] description
+//🟥    | IDENT "=" enumeration "(" ( [ enum-list ] | ":" ) ")" description
+
+//🟥 der-class-specifier :
+//🟥    IDENT "=" der "(" type-specifier "," IDENT { "," IDENT } ")" description
+
+//🟥 base-prefix :
+//🟥    [ input | output ]
+
+//🟥 enum-list :
+//🟥    enumeration-literal { "," enumeration-literal }
+
+//🟥 enumeration-literal :
+//🟥    IDENT description
+
+//✅ composition :
+//✅    element-list
+//✅    { public element-list
+//✅      | protected element-list
+//✅      | equation-section
+//✅      | algorithm-section
+//✅    }
+//🟥    [ external [ language-specification ]
+//🟥      [ external-function-call ] [ annotation-clause ] ";"
+//🟥    ]
+//🟥    [ annotation-clause ";" ]
+pub Composition: Vec<ast::CompositionPart> = {
+    <first:ElementList>
+    <remaining: CompositionPart*>
+    => {
+        let mut v = Vec::new();
+        v.push(ast::CompositionPart::ElementList {
+            visibility: ast::Visibility::Public,
+            elements: first,
+        });
+        v.extend(remaining);
+        v
+    }
+}
+
+pub CompositionPart: ast::CompositionPart = {
+    <comp: ElementListWithVisibility> => comp,
+    <comp: EquationSection> => comp,
+    <comp: AlgorithmSection> => comp,
+}
+
+pub ElementListWithVisibility: ast::CompositionPart = {
+    <visibility:Visibility> <elements: ElementList> => {
+        ast::CompositionPart::ElementList {
+            visibility,
+            elements,
+        }
+    }
+}
+
+pub Visibility: ast::Visibility = {
+    "public" => ast::Visibility::Public,
+    "protected" => ast::Visibility::Protected,
+}
+
+//✅ language-specification :
+//✅    STRING
+pub LanguageSpecification: String = {
+    <string:"STRING"> => string 
+}
+//🟥 external-function-call :
+//🟥    [ component-reference "=" ] IDENT "(" [ expression-list ] ")"
+
+//✅ element-list :
+//✅    { element ";" }
+pub ElementList: Vec<ast::Element> = {
+    <elements:TerminatedList<Element, ";">> => elements
+}
+
+//✅ element :
+//✅    import-clause
+//✅    | extends-clause
+//✅    | [ redeclare ] [ final ] [ inner ] [ outer ] (
+//✅        class-definition
+//✅        | component-clause
+//✅        | replaceable (
+//✅          class-definition
+//✅          | component-clause)
+//🟥        [ constraining-clause description ])
+pub ElementFlags : ast::ElementFlags = {
+    <redeclare:"redeclare"?>
+    <final_:"final"?>
+    <inner:"inner"?>
+    <outer:"outer"?>
+    <replaceable:"replaceable"?> => {
+        ast::ElementFlags {
+            redeclare: redeclare.is_some(),
+            final_: final_.is_some(),
+            inner: inner.is_some(),
+            outer: outer.is_some(),
+            replaceable: replaceable.is_some(),
+        }
+    }
+}
+pub Element : ast::Element = {
+    <flags: ElementFlags> <clause: ComponentClause> => {
+        ast::Element::ComponentClause {
+            flags,
+            clause,
+        }
+    },
+    <flags: ElementFlags> <def: ClassDefinition> => {
+        ast::Element::ClassDefinition {
+            flags,
+            def,
+        }
+    },
+    <extends: ExtendsClause> => extends,
+}
+
+//✅ import-clause :
+//✅    import
+//✅    ( IDENT "=" name
+//🟥      | name [ ".*" | "." ( "*" | "{" import-list "}" ) ])
+//✅    description
+
+pub ImportClause : ast::Element = {
+    // qualified import
+    "import" <name: Name> <description: Description> => {
+        ast::Element::ImportClause {
+            alias: "".to_string(),
+            name,
+            description,
+        }
+    },
+    // unqualified import
+    // "import" <name: Name> ".*" <description: Description> => {
+    //     ast::Element::ImportClause {
+    //         alias: None,
+    //         name,
+    //     }
+    // },
+    // renaming qualified import
+    // "import" <alias:IDENT> "=" <name: Name> <description: Description> => {
+    //     ast::Element::ImportClause {
+    //         alias: None,
+    //         name,
+    //     }
+    // },
+    // multiple definition import
+    // "import" <name:Name> "." "{" SeparatedListMinOne<IDENT, ","> "}"=> {
+    //     ast::Element::ImportClause {
+    //         alias: None,
+    //         name,
+    //     }
+    // }
+}
+
+//✅ import-list :
+//✅    IDENT { "," IDENT }
+// Note: flattened into import-clause
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.3 Extends
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ extends-clause :
+//✅    extends type-specifier
+//🟥    [ class-or-inheritance-modification ]
+//🟥    [ annotation-clause ]
+pub ExtendsClause: ast::Element = {
+    "extends"
+    <type_specifier: TypeSpecifier> => {
+        ast::Element::ExtendsClause {
+            type_specifier,
+        }
+    }
+}
+
+//🟥 constraining-clause :
+//🟥    constrainedby type-specifier [ class-modification ]
+
+//🟥 class-or-inheritance-modification :
+//🟥    "(" [ argument-or-inheritance-modification-list ] ")"
+
+//🟥 argument-or-inheritance-modification-list :
+//🟥     ( argument | inheritance-modification ) { "," ( argument | inheritance-modification ) }
+
+//🟥 inheritance-modification :
+//🟥     break ( connect-equation | IDENT )
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.4 Component Clause
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ component-clause :
+//✅    type-prefix type-specifier [ array-subscripts ] component-list
+pub ComponentClause: ast::ComponentClause = {
+    <type_prefix: TypePrefix>
+    <type_specifier: TypeSpecifier>
+    <array_subscripts: ArraySubscripts?>
+    <components: ComponentList> => {
+        ast::ComponentClause {
+            type_prefix,
+            type_specifier,
+            array_subscripts,
+            components,
+        }
+    }
+}
+
+//✅ type-prefix :
+//✅    [ flow | stream ]
+//✅    [ discrete | parameter | constant ]
+//✅    [ input | output ]
+pub TypePrefix: ast::TypePrefix = {
+    <connection: Connection?>
+    <variability: Variability?>
+    <causality: Causality?> => {
+        ast::TypePrefix {
+            connection: connection.unwrap_or(ast::Connection::None),
+            variability: variability.unwrap_or(ast::Variability::Continuous),
+            causality: causality.unwrap_or(ast::Causality::None),
+        }
+    }
+}
+pub Connection: ast::Connection = {
+    "flow" => ast::Connection::Flow,
+    "stream" => ast::Connection::Stream,
+}
+pub Variability: ast::Variability = {
+    "discrete" => ast::Variability::Discrete,
+    "parameter" => ast::Variability::Parameter,
+    "constant" => ast::Variability::Constant,
+}
+pub Causality: ast::Causality = {
+    "input" => ast::Causality::Input,
+    "output" => ast::Causality::Output,
+}
+//✅ component-list :
+//✅    component-declaration { "," component-declaration }
+pub ComponentList: Vec<ast::ComponentDeclaration> = {
+    <components: SeparatedList<ComponentDeclaration, ",">> => {
+        components
+    }
+}
+//✅ component-declaration :
+//✅    declaration [ condition-attribute ] description
+pub ComponentDeclaration: ast::ComponentDeclaration = {
+    <declaration: Declaration>
+    <condition_attribute: ConditionAttribute?>
+    <description: Description>
+    => {
+        ast::ComponentDeclaration{
+            declaration,
+            condition_attribute,
+            description,
+        }
+    }
+}
+//✅ condition-attribute :
+//✅    if expression
+pub ConditionAttribute: ast::Expression = {
+    "if" <cond: Expression> => cond
+}
+//✅ declaration :
+//✅    IDENT [ array-subscripts ] [ modification ]
+pub Declaration: ast::Declaration = {
+    <name: IDENT>
+    <array_subscripts:ArraySubscripts?>
+    <modification:Modification?> => {
+        ast::Declaration {
+            name,
+            array_subscripts,
+            modification,
+        }
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.5 Modification
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ modification :
+//✅    class-modification [ "=" modification-expression ]
+//✅    | "=" modification-expression
+pub Modification: ast::Modification = {
+    <args: ClassModification> <expr: ("=" <ModExpr>)?> => ast::Modification::Class {
+        args,
+        expr,
+    },
+    "=" <expr: ModExpr> => ast::Modification::Expression {
+        expr,
+    },
+}
+
+//✅ modification-expression :
+//✅    expression
+//✅    | break
+pub ModExpr: ast::ModExpr = {
+    <expr: Expression> => ast::ModExpr::Expression {
+        expr
+    },
+    "break" => ast::ModExpr::Break {}
+}
+
+//✅ class-modification :
+//✅    "(" [ argument-list ] ")"
+pub ClassModification: Vec<ast::Argument> = {
+    "(" <args: SeparatedList<Argument, ",">> ")" => args
+}
+
+//✅ argument-list :
+//✅    argument { "," argument }
+// NOTE: flattend into class-modification above
+
+//🟨 argument :
+//🟨    element-modification-or-replaceable
+//🟥    | element-redeclaration
+pub Argument: ast::Argument = {
+    <each: "each"?> <is_final: "final"?> <name: Name> <modification: Modification?> <description: Description> => {
+        ast::Argument::Modification {
+            name,
+            modification,
+            description,
+            each: each.is_some(),
+            is_final: is_final.is_some(),
+        }
+    },
+}
+
+//🟥 element-modification-or-replaceable :
+//🟥    [ each ] [ final ] ( element-modification | element-replaceable )
+
+//🟨 element-modification :
+//🟨    name [ modification ] description-string
+
+//🟥 element-redeclaration :
+//🟥    redeclare [ each ] [ final ]
+//🟥    ( short-class-definition | component-clause1 | element-replaceable )
+
+//🟥 element-replaceable :
+//🟥    replaceable ( short-class-definition | component-clause1 )
+//🟥    [ constraining-clause ]
+
+//✅ component-clause1 :
+//✅    type-prefix type-specifier component-declaration1
+pub ComponentClause1: ast::ComponentClause1 = {
+    <type_prefix: TypePrefix>
+    <type_specifier: TypeSpecifier>
+    <component_declaration1: ComponentDeclaration1> => {
+        ast::ComponentClause1 {
+            type_prefix,
+            type_specifier,
+            component_declaration1,
+        }
+    }
+}
+
+//✅ component-declaration1 :
+//✅    declaration description
+pub ComponentDeclaration1: ast::ComponentDeclaration1 = {
+    <declaration: Declaration>
+    <description: Description> => {
+        ast::ComponentDeclaration1 {
+            declaration,
+            description,
+        }
+    }
+}
+
+//🟥 short-class-definition :
+//🟥    class-prefixes short-class-specifier
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.6 Equations
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+//✅ equation-section :
+//✅    [ initial ] equation { some-equation ";" }
+pub EquationSection: ast::CompositionPart = {
+    <left: @L>
+    <initial:"initial"?>
+    "equation"
+    <equations:TerminatedList<Equation, ";">>
+    <right: @R>
+    => {
+        ast::CompositionPart::EquationSection {
+            span: ast::Span { left, right},
+            initial: initial.is_some(),
+            equations,
+        }
+    }
+}
+//✅ algorithm-section :
+//✅    [ initial ] algorithm { statement ";" }
+pub AlgorithmSection: ast::CompositionPart = {
+    <initial:"initial"?>
+    "algorithm"
+    <statements:TerminatedList<Statement, ";">>
+    => {
+        ast::CompositionPart::AlgorithmSection {
+            initial: initial.is_some(),
+            statements,
+        }
+    }
+}
+
+//🟨 some-equation :
+//✅    ( simple-expression "=" expression
+//✅      | if-equation
+//✅      | for-equation
+//✅      | connect-equation
+//🟥      | when-equation
+//🟥      | component-reference function-call-args )
+//🟥    description
+pub Equation: ast::Equation = {
+    <lhs:SimpleExpression> "=" <rhs:Expression> <description: Description>=> {
+        ast::Equation::Simple {
+            lhs,
+            rhs,
+            description,
+        }
+    },
+    <eq: IfEquation> => eq,
+    <eq: ForEquation> => eq,
+    <eq: ConnectEquation> => eq,
+}
+
+//✅ statement :
+//✅    ( component-reference ( ":=" expression | function-call-args )
+//🟥      | "(" output-expression-list ")" ":=" component-reference function-call-args
+//✅      | break
+//✅      | return
+//✅      | if-statement
+//✅      | for-statement
+//✅      | while-statement
+//🟥      | when-statement )
+//✅    description
+
+pub Statement: ast::Statement = {
+    <comp: ComponentReference> ":=" <rhs:Expression> <description: Description> => {
+        ast::Statement::Assignment{
+            comp,
+            rhs,
+            description,
+        }
+    },
+    <stmt: IfStatement> => stmt,
+    <stmt: ForStatement> => stmt,
+    <stmt: WhileStatement> =>  stmt,
+    "break" <description: Description> => ast::Statement::Break { description },
+    "return" <description: Description> => ast::Statement::Return { description },
+}
+
+//✅ if-equation :
+//✅    if expression then
+//✅      { some-equation ";" }
+//✅    { elseif expression then
+//✅      { some-equation ";" }
+//✅    }
+//✅    [ else
+//✅      { some-equation ";" }
+//✅    ]
+//✅    end if
+
+pub IfEquation: ast::Equation = {
+    "if" <if_cond:Expression> "then"
+    <if_eqs:TerminatedList<Equation, ";">>
+    <else_if_blocks: ElseIfEquationBlock*>
+    <else_eqs: ElseEquationBlock?>
+    "end" "if" <description: Description> => {
+        ast::Equation::If {
+            if_cond,
+            if_eqs,
+            else_if_blocks,
+            else_eqs: else_eqs.unwrap_or(Vec::new()),
+            description,
+        }
+    }
+}
+
+pub ElseIfEquationBlock: ast::ElseIfEquationBlock = {
+    "elseif" <cond:Expression> "then"
+    <eqs:TerminatedList<Equation, ";">> => {
+        ast::ElseIfEquationBlock {
+            cond, eqs
+        }
+    }
+}
+
+pub ElseEquationBlock: Vec<ast::Equation> = {
+    "else" <eqs:TerminatedList<Equation, ";">> => {
+        eqs
+    }
+}
+
+//✅ if-statement :
+//✅    if expression then
+//✅      { statement ";" }
+//✅    { elseif expression then
+//✅      { statement ";" }
+//✅    }
+//✅    [ else
+//✅      { statement ";" }
+//✅    ]
+//✅    end if
+pub IfStatement: ast::Statement = {
+    "if" <if_cond:Expression> "then"
+    <if_stmts:TerminatedList<Statement, ";">>
+    <else_if_blocks: ElseIfStatementBlock*>
+    <else_stmts: ElseStatementBlock?>
+    "end" "if" <description: Description> => {
+        ast::Statement::If {
+            if_cond, if_stmts,
+            else_if_blocks,
+            else_stmts: else_stmts.unwrap_or(Vec::new()),
+            description,
+        }
+    }
+}
+
+pub ElseIfStatementBlock: ast::ElseIfStatementBlock = {
+    "elseif" <cond:Expression> "then"
+    <eqs:TerminatedList<Statement, ";">> => {
+        ast::ElseIfStatementBlock {
+            cond, eqs
+        }
+    }
+}
+
+pub ElseStatementBlock: Vec<ast::Statement> = {
+    "else" <eqs:TerminatedList<Statement, ";">> => {
+        eqs
+    }
+}
+
+//✅ for-equation :
+//✅    for for-indices loop
+//✅      { some-equation ";" }
+//✅    end for
+pub ForEquation: ast::Equation = {
+    "for" <indices: ForIndices> "loop"
+    <eqs: TerminatedList<Equation, ";">>
+    "end" "for" <description: Description>
+    => {
+        ast::Equation::For {
+            indices,
+            eqs,
+            description,
+        }
+    }
+}
+
+//✅ for-statement :
+//✅    for for-indices loop
+//✅      { statement ";" }
+//✅    end for
+pub ForStatement: ast::Statement = {
+    "for" <indices: ForIndices> "loop"
+    <stmts: TerminatedList<Statement, ";">>
+    "end" "for" <description: Description>
+    => {
+        ast::Statement::For {
+            indices,
+            stmts,
+            description,
+        }
+    }
+}
+
+//✅ for-indices :
+//✅    for-index { "," for-index }
+pub ForIndices: Vec<ast::ForIndex> = {
+    <indices: SeparatedList<ForIndex, ",">> => indices
+}
+
+//✅ for-index :
+//✅    IDENT [ in expression ]
+pub ForIndex: ast::ForIndex = {
+    <ident: IDENT> <in_expr:("in" <Expression>)?> => {
+        ast::ForIndex {
+            ident,
+            in_expr,
+        }
+    }
+}
+
+//✅ while-statement :
+//✅    while expression loop
+//✅      { statement ";" }
+//✅    end while
+pub WhileStatement: ast::Statement = {
+    "while" <cond: Expression> "loop"
+    <stmts: TerminatedList<Statement, ";">>
+    "end" "while"
+    => {
+        ast::Statement::While {
+            cond,
+            stmts,
+            description: ast::Description::default(),
+        }
+    }
+}
+
+//🟥 when-equation :
+//🟥    when expression then
+//🟥      { some-equation ";" }
+//🟥    { elsewhen expression then
+//🟥      { some-equation ";" }
+//🟥    }
+//🟥    end when
+
+//🟥 when-statement :
+//🟥    when expression then
+//🟥      { statement ";" }
+//🟥    { elsewhen expression then
+//🟥      { statement ";" }
+//🟥    }
+//🟥    end when
+
+//✅ connect-equation :
+//✅    connect "(" component-reference "," component-reference ")"
+pub ConnectEquation: ast::Equation = {
+    "connect" "("
+    <lhs: ComponentReference> ","
+    <rhs: ComponentReference> ")"
+    <description: Description> => {
+        ast::Equation::Connect {
+            lhs,
+            rhs,
+            description,
+        }
+    }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// A.2.7 Expressions
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ✅: Implemented,  🟥: Not-Implemented, 🟨: Partial
+
+
+//✅ expression :
+//✅     simple-expression
+//✅    | if expression then expression { elseif expression then expression } else expression
+
+//✅  simple-expression :
+//✅     logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
+pub Expression: ast::Expression = {
+    <simp:SimpleExpression> => {
+        simp
+    },
+    "if" <if_cond:SimpleExpression> "then"
+    <if_expr:SimpleExpression>
+    <else_if_blocks: ElseIfExpressionBlock*>
+    <else_expr: ElseExpressionBlock?>
+     => {
+        ast::Expression::If {
+            if_cond: Box::new(if_cond),
+            if_expr: Box::new(if_expr),
+            else_if_blocks,
+            else_expr: Box::new(else_expr),
+        }
+    },
+}
+
+pub ElseIfExpressionBlock: ast::ElseIfExpressionBlock = {
+    "elseif" <cond:SimpleExpression> "then" <then:SimpleExpression>  => {
+        ast::ElseIfExpressionBlock {
+            cond, then
+        }
+    }
+}
+
+pub ElseExpressionBlock: ast::Expression = {
+    "else" <expr:SimpleExpression> => {
+        expr
+    }
+}
+
+pub ParenthesisExpression = SimpleExpression;
+
+pub SimpleExpression: ast::Expression = {
+//✅ simple-expression :
+//✅    logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
+    #[precedence(level="11")] #[assoc(side="left")]
+    <lhs:SimpleExpression> ":" <rhs:SimpleExpression> => {
+        ast::Expression::Range {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ logical-expression :
+//✅    logical-term { or logical-term }
+    #[precedence(level="10")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "or" <rhs:SimpleExpression> => {
+        ast::Expression::Or {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ logical-term :
+//✅    logical-factor { and logical-factor }
+    #[precedence(level="9")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "and" <rhs:SimpleExpression> => {
+        ast::Expression::And {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ logical-factor :
+//✅    [ not ] relation
+    #[precedence(level="8")]
+    "not" <rhs:SimpleExpression> => {
+        ast::Expression::Not {
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ relation :
+//✅    arithmetic-expression [ relational-operator arithmetic-expression ]
+//✅ relational-operator :
+//✅    "<" | "<=" | ">" | ">=" | "==" | "<>"
+    #[precedence(level="7")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "<" <rhs:SimpleExpression> => {
+        ast::Expression::LessThan {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ">" <rhs:SimpleExpression> => {
+        ast::Expression::GreaterThan {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "<=" <rhs:SimpleExpression> => {
+        ast::Expression::LessThanOrEqual {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ">=" <rhs:SimpleExpression> => {
+        ast::Expression::GreaterThanOrEqual {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "==" <rhs:SimpleExpression> => {
+        ast::Expression::Equal {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "<>" <rhs:SimpleExpression> => {
+        ast::Expression::NotEqual {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    #[precedence(level="12")] #[assoc(side="left")]
+    "-" <rhs:SimpleExpression> => {
+        ast::Expression::Negative {
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ arithmetic-expression :
+//✅    [ add-operator ] term { add-operator term }
+//✅ add-operator :
+//✅    "+" | "-" | ".+" | ".-"
+    #[precedence(level="5")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "+" <rhs:SimpleExpression> => {
+        ast::Expression::Add {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ".+" <rhs:SimpleExpression> => {
+        ast::Expression::ElemAdd {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "-" <rhs:SimpleExpression> => {
+        ast::Expression::Sub {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ".-" <rhs:SimpleExpression> => {
+        ast::Expression::ElemSub {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ term :
+//✅    factor { mul-operator factor }
+//✅ mul-operator :
+//✅    "*" | "/" | ".*" | "./"
+    #[precedence(level="4")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "*" <rhs:SimpleExpression> => {
+        ast::Expression::Mul {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ".*" <rhs:SimpleExpression> => {
+        ast::Expression::ElemMul {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "/" <rhs:SimpleExpression> => {
+        ast::Expression::Div {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> "./" <rhs:SimpleExpression> => {
+        ast::Expression::ElemDiv {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ factor :
+//✅    primary [ ( "^" | ".^" ) primary ]
+    #[precedence(level="3")] #[assoc(side="left")]
+    <lhs:SimpleExpression> "^" <rhs:SimpleExpression> => {
+        ast::Expression::Exp {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+    <lhs:SimpleExpression> ".^" <rhs:SimpleExpression> => {
+        ast::Expression::ElemExp {
+            lhs: Box::new(lhs),
+            rhs: Box::new(rhs),
+        }
+    },
+//✅ primary :
+//✅    UNSIGNED-NUMBER
+//🟥    | STRING
+//✅    | false
+//✅    | true
+//✅    | ( component-reference
+//✅        | der
+//✅        | initial
+//✅        | pure ) function-call-args
+//✅    | component-reference
+//🟥    | "(" output-expression-list ")" [ ( array-subscripts | "." IDENT ) ]
+//🟥    | "[" expression-list { ";" expression-list } "]"
+//🟥    | "{" array-arguments "}"
+//🟥    | end
+    #[precedence(level="0")]
+    "(" <rhs:ParenthesisExpression> ")" => {
+        ast::Expression::Parenthesis {
+            rhs: Box::new(rhs)
+        }
+    },
+    "{" <args:SeparatedList<Expression, ",">> "}" => {
+        ast::Expression::ArrayArguments {
+            args
+        }
+    },
+    <val:"UNSIGNED-INTEGER"> => {
+        ast::Expression::UnsignedInteger(val)
+    },
+    <val:"UNSIGNED-REAL"> => {
+        ast::Expression::UnsignedReal(val)
+    },
+    <val:"boolean"> => {
+        ast::Expression::Boolean(val)
+    },
+    <comp:ComponentReference> => {
+        ast::Expression::Ref{comp}
+    },
+    <comp:ComponentReference> <args:FunctionCallArguments> => {
+        ast::Expression::FunctionCall {
+            comp,
+            args
+        }
+    },
+    "der" <args:FunctionCallArguments> => {
+        ast::Expression::Der {
+            args
+        }
+    },
+}
+
+//✅ UNSIGNED-NUMBER :
+//✅    UNSIGNED-INTEGER | UNSIGNED-REAL
+// NOTE: flattened in primary
+
+//✅ type-specifier :
+//✅    ["."] name
+pub TypeSpecifier: ast::TypeSpecifier = {
+    <leading_period: "."?> <name: Name> => {
+        ast::TypeSpecifier{
+            leading_period: leading_period.is_some(),
+            name,
+        }
+    },
+}
+//✅ name :
+//✅    IDENT { "." IDENT }
+pub Name: ast::Name = {
+    <first:IDENT> <remaining: ("." <IDENT>)*> => {
+        let mut v = vec![first];
+        v.extend(remaining);
+        ast::Name {
+            ident: v
+        }
+    }
+}
+
+
+//✅ component-reference :
+//✅    [ "." ] IDENT [ array-subscripts ] { "." IDENT [ array-subscripts ] }
+pub ComponentReference: ast::ComponentReference = {
+    <local: "."?> <parts: SeparatedListMinOne<RefPart, ".">> => {
+        ast::ComponentReference{
+            local: local.is_some(),
+            parts,
+        }
+    },
+}
+pub RefPart: ast::RefPart = {
+    <name:IDENT> <array_subscripts:ArraySubscripts?> => {
+        ast::RefPart {
+            name,
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
+        }
+    }
+}
+
+//🟥 result-reference :
+//🟥    component-reference
+//🟥    | der "(" component-reference [ "," UNSIGNED-INTEGER ] ")"
+
+//✅ function-call-args :
+//✅    "(" [ function-arguments ] ")"
+pub FunctionCallArguments: Vec<ast::Expression> = {
+    "(" <args:SeparatedList<Expression, ",">> ")"  => args,
+}
+
+//🟥 function-arguments :
+//🟥    expression [ "," function-arguments-non-first | for for-indices ]
+//🟥    | function-partial-application [ "," function-arguments-non-first ]
+//🟥    | named-arguments
+
+//🟥 function-arguments-non-first :
+//🟥    function-argument [ "," function-arguments-non-first ]
+//🟥    | named-arguments
+
+//🟥 array-arguments :
+//🟥    expression [ "," array-arguments-non-first | for for-indices ]
+
+//🟥 array-arguments-non-first :
+//🟥    expression [ "," array-arguments-non-first ]
+
+//🟥 named-arguments: named-argument [ "," named-arguments ]
+
+//🟥 named-argument: IDENT "=" function-argument
+
+//🟥 function-argument :
+//🟥    function-partial-application | expression
+
+//🟥 function-partial-application :
+//🟥    function type-specifier "(" [ named-arguments ] ")"
+
+//🟥 output-expression-list :
+//🟥    [ expression ] { "," [ expression ] }
+
+//🟥 expression-list :
+//🟥    expression { "," expression }
+
+//✅ array-subscripts :
+//✅    "[" subscript { "," subscript } "]"
+pub ArraySubscripts: Vec<ast::Subscript> = {
+    "[" <subscripts: SeparatedList<Subscript, ",">> "]" => {
+        subscripts
+    },
+}
+//✅ subscript :
+//✅    ":" | expression
+pub Subscript: ast::Subscript = {
+    ":" => ast::Subscript::Colon,
+    <expr: Expression> => ast::Subscript::Expression(expr),
+}
+
+//✅ description :
+//✅    description-string [ annotation-clause ]
+pub Description: ast::Description = {
+    <strings: DescriptionString?>
+    <annotation: AnnotationClause?>
+    => {
+        ast::Description {
+            strings: strings.unwrap_or(Vec::new()),
+            annotation: annotation.unwrap_or(Vec::new()),
+        }
+    },
+}
+
+//✅ description-string :
+//✅    [ STRING { "+" STRING } ]
+// Note: LALRPOP doesn't like empty expressions, so effectively
+//       removing outer [ ], and at least one string is required.
+//       Other expressions will need to treat as option.
+pub DescriptionString: Vec<String> = {
+    <first:"STRING"> <remaining: ("+" <"STRING">)*> => {
+        let mut v = vec![first];
+        v.extend(remaining);
+        v
+    }
+}
+
+//✅ annotation-clause :
+//✅    annotation class-modification
+pub AnnotationClause: Vec<ast::Argument> = {
+    "annotation" <modification:ClassModification> => {
+        modification
+    },
+}
