@@ -1,0 +1,111 @@
+use crate::s1_parser::ast;
+use crate::s1_parser::visitor::Visitor;
+
+pub struct PrintVisitor {
+    level: usize,
+    indent: String,
+}
+
+impl PrintVisitor {
+    pub fn print(&self, s: &str) {
+        println!("{}{}", self.indent.repeat(self.level - 1), s);
+    }
+}
+
+impl Default for PrintVisitor {
+    fn default() -> Self {
+        PrintVisitor {
+            level: 0,
+            indent: "  ".to_string(),
+        }
+    }
+}
+
+impl Visitor for PrintVisitor {
+    fn enter_any(&mut self) {
+        self.level += 1;
+    }
+
+    fn exit_any(&mut self) {
+        self.level -= 1;
+    }
+
+    fn enter_stored_definition(&mut self, _def: &ast::StoredDefinition) {
+        self.print("Stored Definition");
+    }
+
+    fn enter_class_definition(&mut self, class: &ast::ClassDefinition) {
+        if let ast::ClassSpecifier::Long { name, .. } = &class.specifier {
+            self.print(&format!("class {}", name));
+        }
+    }
+
+    fn exit_class_definition(&mut self, _class: &ast::ClassDefinition) {
+        println!("\n");
+    }
+
+    fn enter_expression(&mut self, expr: &ast::Expression) {
+        match expr {
+            ast::Expression::Binary { op, .. } => {
+                self.print(&format!("{:?}", op));
+            }
+            ast::Expression::Unary { op, .. } => {
+                self.print(&format!("{:?}", op));
+            }
+            ast::Expression::Ref { comp } => {
+                self.print(&format!("{:?}", comp));
+            }
+            ast::Expression::UnsignedInteger(val) => {
+                self.print(&format!("{:?}", val));
+            }
+            ast::Expression::UnsignedReal(val) => {
+                self.print(&format!("{:?}", val));
+            }
+            ast::Expression::Boolean(val) => {
+                self.print(&format!("{:?}", val));
+            }
+            ast::Expression::If { .. } => {
+                self.print("if");
+            }
+            ast::Expression::ArrayArguments { .. } => {
+                self.print("array_args");
+            }
+            ast::Expression::FunctionCall { comp, .. } => {
+                self.print(&format!("{:?}", comp));
+            }
+            ast::Expression::Der { .. } => {
+                self.print("der");
+            }
+        }
+    }
+
+    fn enter_equation(&mut self, eq: &ast::Equation) {
+        match eq {
+            ast::Equation::Connect { .. } => {
+                self.print("connect");
+            }
+            ast::Equation::Simple { .. } => self.print("equation"),
+            ast::Equation::If { .. } => {
+                self.print("if");
+            }
+            ast::Equation::For { .. } => {
+                self.print("for");
+            }
+        }
+    }
+
+    fn exit_element(&mut self, elem: &ast::Element) {
+        match elem {
+            ast::Element::ComponentClause { clause, .. } => {
+                for comp in clause.components.iter() {
+                    self.print(&format!("component: {}", comp.declaration.name));
+                }
+            }
+            ast::Element::ImportClause { name, .. } => {
+                self.print(&format!("import: {}", name.ident.join(".")));
+            }
+            ast::Element::ClassDefinition { .. } => {}
+            ast::Element::ExtendsClause { .. } => {}
+        }
+    }
+}

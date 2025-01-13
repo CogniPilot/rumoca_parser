@@ -68,6 +68,6 @@ pub fn parse_file(filename: &str) -> ast::StoredDefinition {
     let mut def = result.unwrap();
     let digest = md5::compute(file_txt);
     def.model_md5 = format!("{:x}", digest);
-    def.rumoca_git_hash = env!("GIT_HASH").to_string();
+    //def.rumoca_git_hash = env!("GIT_HASH").to_string();
     def
 }

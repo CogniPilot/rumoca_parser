@@ -14,23 +14,17 @@ pub struct Span {
 pub struct StoredDefinition {
     pub span: Span,
     pub classes: Vec<ClassDefinition>,
-    pub within: Option<Within>,
+    pub within: Option<Name>,
     pub model_md5: String,
     pub rumoca_git_hash: String,
-}
-
-#[derive(CommonTraits!)]
-pub struct Within {
-    pub span: Span,
-    pub name: Name,
 }
 
 #[derive(CommonTraits!, Default)]
 pub struct ClassDefinition {
     pub is_encapsulated: bool,
     pub is_final: bool,
-    pub class_prefixes: ClassPrefixes,
-    pub class_specifier: ClassSpecifier,
+    pub prefixes: ClassPrefixes,
+    pub specifier: ClassSpecifier,
 }
 
 #[derive(CommonTraits!)]
@@ -170,9 +164,7 @@ pub enum Statement {
         description: Description,
     },
     If {
-        if_cond: Expression,
-        if_stmts: Vec<Statement>,
-        else_if_blocks: Vec<ElseIfStatementBlock>,
+        if_blocks: Vec<IfStatementBlock>,
         else_stmts: Vec<Statement>,
         description: Description,
     },
@@ -214,9 +206,7 @@ pub enum Equation {
         description: Description,
     },
     If {
-        if_cond: Expression,
-        if_eqs: Vec<Equation>,
-        else_if_blocks: Vec<ElseIfEquationBlock>,
+        if_blocks: Vec<IfEquationBlock>,
         else_eqs: Vec<Equation>,
         description: Description,
     },
@@ -239,21 +229,51 @@ pub struct ForIndex {
 }
 
 #[derive(CommonTraits!)]
-pub struct ElseIfEquationBlock {
+pub struct IfEquationBlock {
     pub cond: Expression,
     pub eqs: Vec<Equation>,
 }
 
 #[derive(CommonTraits!)]
-pub struct ElseIfStatementBlock {
+pub struct IfStatementBlock {
     pub cond: Expression,
-    pub eqs: Vec<Statement>,
+    pub stmts: Vec<Statement>,
 }
 
 #[derive(CommonTraits!)]
-pub struct ElseIfExpressionBlock {
+pub struct IfExpressionBlock {
     pub cond: Expression,
-    pub then: Expression,
+    pub expr: Expression,
+}
+
+#[derive(CommonTraits!)]
+pub enum UnaryOp {
+    Paren,
+    Not,
+    Negative,
+}
+
+#[derive(CommonTraits!)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    ElemAdd,
+    ElemSub,
+    ElemMul,
+    ElemDiv,
+    Exp,
+    ElemExp,
+    Or,
+    And,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    Equal,
+    NotEqual,
+    Range,
 }
 
 #[derive(CommonTraits!)]
@@ -265,98 +285,17 @@ pub enum Expression {
     Ref {
         comp: ComponentReference,
     },
-    // unary
-    Negative {
+    Unary {
+        op: UnaryOp,
         rhs: Box<Expression>,
     },
-    Parenthesis {
-        rhs: Box<Expression>,
-    },
-    // arithmetic
-    Add {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    ElemAdd {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Sub {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    ElemSub {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Mul {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    ElemMul {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Div {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    ElemDiv {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Exp {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    ElemExp {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    // logical
-    Or {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    And {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Not {
-        rhs: Box<Expression>,
-    },
-    LessThan {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    LessThanOrEqual {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    GreaterThan {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    GreaterThanOrEqual {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Equal {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    NotEqual {
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    Range {
+    Binary {
+        op: BinaryOp,
         lhs: Box<Expression>,
         rhs: Box<Expression>,
     },
     If {
-        if_cond: Box<Expression>,
-        if_expr: Box<Expression>,
-        else_if_blocks: Vec<ElseIfExpressionBlock>,
+        if_blocks: Vec<IfExpressionBlock>,
         else_expr: Box<Option<Expression>>,
     },
     ArrayArguments {

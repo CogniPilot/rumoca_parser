@@ -2,7 +2,7 @@
 name = "rumoca_parser"
 authors = ["James Goppert", "Benjamin Perseghetti"]
 description = "A Modelica translator with focus on Casadi, Sympy, JAX, and Collimator generation"
-version = "0.4.5"
+version = "0.5.0"
 edition = "2021"
 license = "Apache-2.0"
 
@@ -11,6 +11,7 @@ lalrpop = "0.22.0"
 rerun_except = "1.0.0"
 
 [dependencies]
+clap = { version = "4.5.20", features = ["derive"] }
 codespan-reporting = "0.11.1"
 lalrpop-util = "0.22.0"
 logos = "0.15.0"

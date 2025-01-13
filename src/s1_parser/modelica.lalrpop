@@ -142,17 +142,9 @@ extern {
 //✅ stored-definition :
 //✅    [ within [ name ] ";" ]
 //✅    { [ final ] class-definition ";" }
-pub Within: ast::Within = {
-    <left: @L>"within" <name:Name> ";"<right: @R> => {
-        ast::Within {
-            span: ast::Span { left, right},
-            name,
-        }
-    }
-}
 pub StoredDefinition: ast::StoredDefinition = {
     <left: @L>
-    <within: Within?>
+    <within: ("within" <Name> ";")?>
     <classes:TerminatedList<ClassDefinitionWithFinal, ";">>
     <right: @R> => {
         ast::StoredDefinition {
@@ -180,13 +172,13 @@ pub ClassDefinitionWithFinal: ast::ClassDefinition = {
 //✅    [ encapsulated ] class-prefixes class-specifier
 pub ClassDefinition: ast::ClassDefinition = {
     <is_encapsulated: "encapsulated"?>
-    <class_prefixes: ClassPrefixes>
-    <class_specifier: ClassSpecifier> => {
+    <prefixes: ClassPrefixes>
+    <specifier: ClassSpecifier> => {
         ast::ClassDefinition {
             is_final: false,
             is_encapsulated: is_encapsulated.is_some(),
-            class_prefixes,
-            class_specifier,
+            prefixes,
+            specifier,
         }
     }
 }
@@ -738,24 +730,31 @@ pub Statement: ast::Statement = {
 
 pub IfEquation: ast::Equation = {
     "if" <if_cond:Expression> "then"
-    <if_eqs:TerminatedList<Equation, ";">>
+    <then_eqs:TerminatedList<Equation, ";">>
     <else_if_blocks: ElseIfEquationBlock*>
     <else_eqs: ElseEquationBlock?>
     "end" "if" <description: Description> => {
+        let mut if_blocks = Vec::<ast::IfEquationBlock>::new();
+        if_blocks.push(
+            ast::IfEquationBlock {
+                cond: if_cond,
+                eqs: then_eqs,
+            }
+        );
+        if_blocks.extend(else_if_blocks);
+
         ast::Equation::If {
-            if_cond,
-            if_eqs,
-            else_if_blocks,
+            if_blocks,
             else_eqs: else_eqs.unwrap_or(Vec::new()),
             description,
         }
     }
 }
 
-pub ElseIfEquationBlock: ast::ElseIfEquationBlock = {
+pub ElseIfEquationBlock: ast::IfEquationBlock = {
     "elseif" <cond:Expression> "then"
     <eqs:TerminatedList<Equation, ";">> => {
-        ast::ElseIfEquationBlock {
+        ast::IfEquationBlock {
             cond, eqs
         }
     }
@@ -779,31 +778,39 @@ pub ElseEquationBlock: Vec<ast::Equation> = {
 //✅    end if
 pub IfStatement: ast::Statement = {
     "if" <if_cond:Expression> "then"
-    <if_stmts:TerminatedList<Statement, ";">>
+    <then_stmts:TerminatedList<Statement, ";">>
     <else_if_blocks: ElseIfStatementBlock*>
     <else_stmts: ElseStatementBlock?>
     "end" "if" <description: Description> => {
+        let mut if_blocks = Vec::<ast::IfStatementBlock>::new();
+        if_blocks.push(
+            ast::IfStatementBlock {
+                cond: if_cond,
+                stmts: then_stmts,
+            }
+        );
+        if_blocks.extend(else_if_blocks);
+
         ast::Statement::If {
-            if_cond, if_stmts,
-            else_if_blocks,
+            if_blocks,
             else_stmts: else_stmts.unwrap_or(Vec::new()),
             description,
         }
     }
 }
 
-pub ElseIfStatementBlock: ast::ElseIfStatementBlock = {
+pub ElseIfStatementBlock: ast::IfStatementBlock = {
     "elseif" <cond:Expression> "then"
-    <eqs:TerminatedList<Statement, ";">> => {
-        ast::ElseIfStatementBlock {
-            cond, eqs
+    <stmts:TerminatedList<Statement, ";">> => {
+        ast::IfStatementBlock {
+            cond, stmts
         }
     }
 }
 
 pub ElseStatementBlock: Vec<ast::Statement> = {
-    "else" <eqs:TerminatedList<Statement, ";">> => {
-        eqs
+    "else" <stmts:TerminatedList<Statement, ";">> => {
+        stmts
     }
 }
 
@@ -916,30 +923,36 @@ pub ConnectEquation: ast::Equation = {
 //✅     simple-expression
 //✅    | if expression then expression { elseif expression then expression } else expression
 
-//✅  simple-expression :
-//✅     logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
+//🟨  simple-expression :
+//✅     logical-expression
+//🟥     [ ":" logical-expression [ ":" logical-expression ] ]
 pub Expression: ast::Expression = {
-    <simp:SimpleExpression> => {
-        simp
-    },
+    <simp:SimpleExpression> =>  <>,
     "if" <if_cond:SimpleExpression> "then"
-    <if_expr:SimpleExpression>
+    <then_expr:SimpleExpression>
     <else_if_blocks: ElseIfExpressionBlock*>
     <else_expr: ElseExpressionBlock?>
      => {
+        let mut if_blocks = Vec::<ast::IfExpressionBlock>::new();
+        if_blocks.push(
+            ast::IfExpressionBlock {
+                cond: if_cond,
+                expr: then_expr,
+            }
+        );
+        if_blocks.extend(else_if_blocks);
+
         ast::Expression::If {
-            if_cond: Box::new(if_cond),
-            if_expr: Box::new(if_expr),
-            else_if_blocks,
+            if_blocks,
             else_expr: Box::new(else_expr),
         }
     },
 }
 
-pub ElseIfExpressionBlock: ast::ElseIfExpressionBlock = {
-    "elseif" <cond:SimpleExpression> "then" <then:SimpleExpression>  => {
-        ast::ElseIfExpressionBlock {
-            cond, then
+pub ElseIfExpressionBlock: ast::IfExpressionBlock = {
+    "elseif" <cond:SimpleExpression> "then" <expr:SimpleExpression>  => {
+        ast::IfExpressionBlock {
+            cond, expr
         }
     }
 }
@@ -957,7 +970,8 @@ pub SimpleExpression: ast::Expression = {
 //✅    logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
     #[precedence(level="11")] #[assoc(side="left")]
     <lhs:SimpleExpression> ":" <rhs:SimpleExpression> => {
-        ast::Expression::Range {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Range,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -966,7 +980,8 @@ pub SimpleExpression: ast::Expression = {
 //✅    logical-term { or logical-term }
     #[precedence(level="10")] #[assoc(side="left")]
     <lhs:SimpleExpression> "or" <rhs:SimpleExpression> => {
-        ast::Expression::Or {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Or,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -975,7 +990,8 @@ pub SimpleExpression: ast::Expression = {
 //✅    logical-factor { and logical-factor }
     #[precedence(level="9")] #[assoc(side="left")]
     <lhs:SimpleExpression> "and" <rhs:SimpleExpression> => {
-        ast::Expression::And {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Add,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -984,7 +1000,8 @@ pub SimpleExpression: ast::Expression = {
 //✅    [ not ] relation
     #[precedence(level="8")]
     "not" <rhs:SimpleExpression> => {
-        ast::Expression::Not {
+        ast::Expression::Unary {
+            op: ast::UnaryOp::Not,
             rhs: Box::new(rhs),
         }
     },
@@ -994,44 +1011,51 @@ pub SimpleExpression: ast::Expression = {
 //✅    "<" | "<=" | ">" | ">=" | "==" | "<>"
     #[precedence(level="7")] #[assoc(side="left")]
     <lhs:SimpleExpression> "<" <rhs:SimpleExpression> => {
-        ast::Expression::LessThan {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::LessThan,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ">" <rhs:SimpleExpression> => {
-        ast::Expression::GreaterThan {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::GreaterThan,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "<=" <rhs:SimpleExpression> => {
-        ast::Expression::LessThanOrEqual {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::LessThanOrEqual,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ">=" <rhs:SimpleExpression> => {
-        ast::Expression::GreaterThanOrEqual {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::GreaterThanOrEqual,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "==" <rhs:SimpleExpression> => {
-        ast::Expression::Equal {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Equal,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "<>" <rhs:SimpleExpression> => {
-        ast::Expression::NotEqual {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::NotEqual,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     #[precedence(level="12")] #[assoc(side="left")]
     "-" <rhs:SimpleExpression> => {
-        ast::Expression::Negative {
+        ast::Expression::Unary {
+            op: ast::UnaryOp::Negative,
             rhs: Box::new(rhs),
         }
     },
@@ -1041,25 +1065,29 @@ pub SimpleExpression: ast::Expression = {
 //✅    "+" | "-" | ".+" | ".-"
     #[precedence(level="5")] #[assoc(side="left")]
     <lhs:SimpleExpression> "+" <rhs:SimpleExpression> => {
-        ast::Expression::Add {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Add,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ".+" <rhs:SimpleExpression> => {
-        ast::Expression::ElemAdd {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::ElemAdd,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "-" <rhs:SimpleExpression> => {
-        ast::Expression::Sub {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Sub,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ".-" <rhs:SimpleExpression> => {
-        ast::Expression::ElemSub {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::ElemSub,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -1070,25 +1098,29 @@ pub SimpleExpression: ast::Expression = {
 //✅    "*" | "/" | ".*" | "./"
     #[precedence(level="4")] #[assoc(side="left")]
     <lhs:SimpleExpression> "*" <rhs:SimpleExpression> => {
-        ast::Expression::Mul {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Mul,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ".*" <rhs:SimpleExpression> => {
-        ast::Expression::ElemMul {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::ElemMul,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "/" <rhs:SimpleExpression> => {
-        ast::Expression::Div {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Div,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> "./" <rhs:SimpleExpression> => {
-        ast::Expression::ElemDiv {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::ElemDiv,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -1097,13 +1129,15 @@ pub SimpleExpression: ast::Expression = {
 //✅    primary [ ( "^" | ".^" ) primary ]
     #[precedence(level="3")] #[assoc(side="left")]
     <lhs:SimpleExpression> "^" <rhs:SimpleExpression> => {
-        ast::Expression::Exp {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::Exp,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
     <lhs:SimpleExpression> ".^" <rhs:SimpleExpression> => {
-        ast::Expression::ElemExp {
+        ast::Expression::Binary {
+            op: ast::BinaryOp::ElemExp,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -1124,7 +1158,8 @@ pub SimpleExpression: ast::Expression = {
 //🟥    | end
     #[precedence(level="0")]
     "(" <rhs:ParenthesisExpression> ")" => {
-        ast::Expression::Parenthesis {
+        ast::Expression::Unary {
+            op: ast::UnaryOp::Paren,
             rhs: Box::new(rhs)
         }
     },
