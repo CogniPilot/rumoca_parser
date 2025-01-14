@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 derive_alias! {
-    #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)];
+    #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Hash)];
 }
 
 #[derive(CommonTraits!, Default)]
@@ -279,8 +279,8 @@ pub enum BinaryOp {
 
 #[derive(CommonTraits!)]
 pub enum Expression {
-    UnsignedInteger(i64),
-    UnsignedReal(f64),
+    UnsignedInteger(String),
+    UnsignedReal(String),
     Boolean(bool),
     //String(String),
     Ref {

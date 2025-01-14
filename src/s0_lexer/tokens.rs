@@ -180,11 +180,11 @@ pub enum Token {
     #[regex("\"[\\- _0-9a-zA-Z]*\"", quoted_string_callback)]
     String(String),
 
-    #[regex("[1-9][0-9]*", |lex| lex.slice().parse::<i64>().unwrap(), priority=3)]
-    UnsignedInteger(i64),
+    #[regex("[1-9][0-9]*", |lex| lex.slice().to_string(), priority=3)]
+    UnsignedInteger(String),
 
-    #[regex(r"(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
-    UnsignedReal(f64),
+    #[regex(r"(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().to_string())]
+    UnsignedReal(String),
 
     #[token(r"(true|false)?", |lex| lex.slice().parse::<bool>().unwrap())]
     Boolean(bool),

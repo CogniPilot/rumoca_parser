@@ -99,8 +99,8 @@ extern {
         // other lexical tokens
         "IDENT" => Token::Identifier(<String>),
         "STRING" => Token::String(<String>),
-        "UNSIGNED-INTEGER" => Token::UnsignedInteger(<i64>),
-        "UNSIGNED-REAL" => Token::UnsignedReal(<f64>),
+        "UNSIGNED-INTEGER" => Token::UnsignedInteger(<String>),
+        "UNSIGNED-REAL" => Token::UnsignedReal(<String>),
         "boolean" => Token::Boolean(<bool>),
         "(" => Token::LParen,
         ")" => Token::RParen,
