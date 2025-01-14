@@ -21,7 +21,7 @@ impl Default for PrintVisitor {
     }
 }
 
-impl Visitor for PrintVisitor {
+impl<'a> Visitor<'a> for PrintVisitor {
     fn enter_any(&mut self) {
         self.level += 1;
     }
@@ -30,21 +30,21 @@ impl Visitor for PrintVisitor {
         self.level -= 1;
     }
 
-    fn enter_stored_definition(&mut self, _def: &ast::StoredDefinition) {
+    fn enter_stored_definition(&mut self, _def: &'a ast::StoredDefinition) {
         self.print("Stored Definition");
     }
 
-    fn enter_class_definition(&mut self, class: &ast::ClassDefinition) {
+    fn enter_class_definition(&mut self, class: &'a ast::ClassDefinition) {
         if let ast::ClassSpecifier::Long { name, .. } = &class.specifier {
             self.print(&format!("class {}", name));
         }
     }
 
-    fn exit_class_definition(&mut self, _class: &ast::ClassDefinition) {
+    fn exit_class_definition(&mut self, _class: &'a ast::ClassDefinition) {
         println!("\n");
     }
 
-    fn enter_expression(&mut self, expr: &ast::Expression) {
+    fn enter_expression(&mut self, expr: &'a ast::Expression) {
         match expr {
             ast::Expression::Binary { op, .. } => {
                 self.print(&format!("{:?}", op));
@@ -79,7 +79,7 @@ impl Visitor for PrintVisitor {
         }
     }
 
-    fn enter_equation(&mut self, eq: &ast::Equation) {
+    fn enter_equation(&mut self, eq: &'a ast::Equation) {
         match eq {
             ast::Equation::Connect { .. } => {
                 self.print("connect");
@@ -94,7 +94,7 @@ impl Visitor for PrintVisitor {
         }
     }
 
-    fn exit_element(&mut self, elem: &ast::Element) {
+    fn exit_element(&mut self, elem: &'a ast::Element) {
         match elem {
             ast::Element::ComponentClause { clause, .. } => {
                 for comp in clause.components.iter() {
@@ -109,7 +109,7 @@ impl Visitor for PrintVisitor {
         }
     }
 
-    fn exit_component_reference(&mut self, comp: &ast::ComponentReference) {
+    fn exit_component_reference(&mut self, comp: &'a ast::ComponentReference) {
         let mut s: String = "".to_string();
         for (index, part) in comp.parts.iter().enumerate() {
             if index != 0 || comp.local {

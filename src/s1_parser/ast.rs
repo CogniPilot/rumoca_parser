@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 derive_alias! {
-    #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Hash)];
+    #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)];
 }
 
 #[derive(CommonTraits!, Default)]

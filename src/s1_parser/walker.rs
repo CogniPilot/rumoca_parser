@@ -3,7 +3,10 @@ use crate::s1_parser::ast;
 use crate::s1_parser::visitor::Visitor;
 
 impl Walker {
-    pub fn walk_stored_definition<V: Visitor>(visitor: &mut V, def: &ast::StoredDefinition) {
+    pub fn walk_stored_definition<'a, V: Visitor<'a>>(
+        visitor: &mut V,
+        def: &'a ast::StoredDefinition,
+    ) {
         visitor.enter_any();
         visitor.enter_stored_definition(def);
         for class in def.classes.iter() {
@@ -13,7 +16,10 @@ impl Walker {
         visitor.exit_any();
     }
 
-    pub fn walk_class_definition<V: Visitor>(visitor: &mut V, class: &ast::ClassDefinition) {
+    pub fn walk_class_definition<'a, V: Visitor<'a>>(
+        visitor: &mut V,
+        class: &'a ast::ClassDefinition,
+    ) {
         visitor.enter_any();
         visitor.enter_class_definition(class);
 
@@ -45,14 +51,14 @@ impl Walker {
         visitor.exit_any();
     }
 
-    pub fn walk_element<V: Visitor>(visitor: &mut V, eq: &ast::Element) {
+    pub fn walk_element<'a, V: Visitor<'a>>(visitor: &mut V, eq: &'a ast::Element) {
         visitor.enter_any();
         visitor.enter_element(eq);
         visitor.exit_element(eq);
         visitor.exit_any();
     }
 
-    pub fn walk_equation<V: Visitor>(visitor: &mut V, eq: &ast::Equation) {
+    pub fn walk_equation<'a, V: Visitor<'a>>(visitor: &mut V, eq: &'a ast::Equation) {
         visitor.enter_any();
         visitor.enter_equation(eq);
         match eq {
@@ -89,7 +95,7 @@ impl Walker {
         visitor.exit_any();
     }
 
-    pub fn walk_statement<V: Visitor>(visitor: &mut V, stmt: &ast::Statement) {
+    pub fn walk_statement<'a, V: Visitor<'a>>(visitor: &mut V, stmt: &'a ast::Statement) {
         visitor.enter_any();
         visitor.enter_statement(stmt);
         match stmt {
@@ -130,7 +136,7 @@ impl Walker {
         visitor.exit_any();
     }
 
-    pub fn walk_expression<V: Visitor>(visitor: &mut V, expr: &ast::Expression) {
+    pub fn walk_expression<'a, V: Visitor<'a>>(visitor: &mut V, expr: &'a ast::Expression) {
         visitor.enter_any();
         visitor.enter_expression(expr);
         match expr {
@@ -180,7 +186,10 @@ impl Walker {
         visitor.exit_any();
     }
 
-    pub fn walk_component_reference<V: Visitor>(visitor: &mut V, comp: &ast::ComponentReference) {
+    pub fn walk_component_reference<'a, V: Visitor<'a>>(
+        visitor: &mut V,
+        comp: &'a ast::ComponentReference,
+    ) {
         visitor.enter_any();
         visitor.enter_component_reference(comp);
         visitor.exit_component_reference(comp);

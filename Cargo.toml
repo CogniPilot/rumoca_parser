@@ -2,7 +2,7 @@
 name = "rumoca_parser"
 authors = ["James Goppert", "Benjamin Perseghetti"]
 description = "A Modelica translator with focus on Casadi, Sympy, JAX, and Collimator generation"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 license = "Apache-2.0"
 
