@@ -52,8 +52,8 @@ impl Visitor for PrintVisitor {
             ast::Expression::Unary { op, .. } => {
                 self.print(&format!("{:?}", op));
             }
-            ast::Expression::Ref { comp } => {
-                self.print(&format!("{:?}", comp));
+            ast::Expression::Ref { .. } => {
+                self.print("ref");
             }
             ast::Expression::UnsignedInteger(val) => {
                 self.print(&format!("{:?}", val));
@@ -70,8 +70,8 @@ impl Visitor for PrintVisitor {
             ast::Expression::ArrayArguments { .. } => {
                 self.print("array_args");
             }
-            ast::Expression::FunctionCall { comp, .. } => {
-                self.print(&format!("{:?}", comp));
+            ast::Expression::FunctionCall { .. } => {
+                self.print("function call");
             }
             ast::Expression::Der { .. } => {
                 self.print("der");
@@ -107,5 +107,16 @@ impl Visitor for PrintVisitor {
             ast::Element::ClassDefinition { .. } => {}
             ast::Element::ExtendsClause { .. } => {}
         }
+    }
+
+    fn exit_component_reference(&mut self, comp: &ast::ComponentReference) {
+        let mut s: String = "".to_string();
+        for (index, part) in comp.parts.iter().enumerate() {
+             if index != 0 || comp.local {
+                 s += ".";
+             }
+             s += &part.name;
+         }
+         self.print(&s);
     }
 }
