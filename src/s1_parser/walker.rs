@@ -39,7 +39,7 @@ impl Walker {
                     }
                 }
             }
-            ast::ClassSpecifier::Extends { .. } => {},
+            ast::ClassSpecifier::Extends { .. } => {}
         }
         visitor.exit_class_definition(class);
         visitor.exit_any();

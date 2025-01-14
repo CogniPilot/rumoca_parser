@@ -151,7 +151,8 @@ pub StoredDefinition: ast::StoredDefinition = {
             span: ast::Span { left, right},
             classes,
             within,
-            rumoca_git_hash: "".to_string(),
+            rumoca_parser_version: "".to_string(),
+            rumoca_parser_git: "".to_string(),
             model_md5: "".to_string(),
         }
     }

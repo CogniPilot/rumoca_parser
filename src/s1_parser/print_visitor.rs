@@ -112,11 +112,11 @@ impl Visitor for PrintVisitor {
     fn exit_component_reference(&mut self, comp: &ast::ComponentReference) {
         let mut s: String = "".to_string();
         for (index, part) in comp.parts.iter().enumerate() {
-             if index != 0 || comp.local {
-                 s += ".";
-             }
-             s += &part.name;
-         }
-         self.print(&s);
+            if index != 0 || comp.local {
+                s += ".";
+            }
+            s += &part.name;
+        }
+        self.print(&s);
     }
 }

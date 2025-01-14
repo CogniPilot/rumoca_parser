@@ -16,7 +16,8 @@ pub struct StoredDefinition {
     pub classes: Vec<ClassDefinition>,
     pub within: Option<Name>,
     pub model_md5: String,
-    pub rumoca_git_hash: String,
+    pub rumoca_parser_version: String,
+    pub rumoca_parser_git: String,
 }
 
 #[derive(CommonTraits!, Default)]
