@@ -158,7 +158,7 @@ pub StoredDefinition: ast::StoredDefinition = {
     }
 }
 
-pub ClassDefinitionWithFinal: ast::ClassDefinition = {
+ClassDefinitionWithFinal: ast::ClassDefinition = {
     <is_final: "final"?> <mut class: ClassDefinition> => {
         class.is_final = is_final.is_some();
         class
@@ -851,7 +851,7 @@ pub ForStatement: ast::Statement = {
 
 //✅ for-indices :
 //✅    for-index { "," for-index }
-pub ForIndices: Vec<ast::ForIndex> = {
+ForIndices: Vec<ast::ForIndex> = {
     <indices: SeparatedList<ForIndex, ",">> => indices
 }
 
@@ -928,7 +928,7 @@ pub ConnectEquation: ast::Equation = {
 //✅     logical-expression
 //🟥     [ ":" logical-expression [ ":" logical-expression ] ]
 pub Expression: ast::Expression = {
-    <simp:SimpleExpression> =>  <>,
+    <SimpleExpression> =>  <>,
     "if" <if_cond:SimpleExpression> "then"
     <then_expr:SimpleExpression>
     <else_if_blocks: ElseIfExpressionBlock*>
@@ -966,7 +966,44 @@ pub ElseExpressionBlock: ast::Expression = {
 
 pub ParenthesisExpression = SimpleExpression;
 
-pub SimpleExpression: ast::Expression = {
+//✅ relational-operator :
+//✅    "<" | "<=" | ">" | ">=" | "==" | "<>"
+RelationalOperator : ast::BinaryOp = {
+    "<" => ast::BinaryOp::LessThan,
+    "<=" => ast::BinaryOp::LessThanOrEqual,
+    ">" => ast::BinaryOp::GreaterThan,
+    ">=" => ast::BinaryOp::GreaterThanOrEqual,
+    "==" => ast::BinaryOp::Equal,
+    "<>" => ast::BinaryOp::NotEqual,
+}
+
+//✅ add-operator :
+//✅    "+" | "-" | ".+" | ".-"
+AddBinaryOperator : ast::BinaryOp = {
+    "+" => ast::BinaryOp::Add,
+    "-" => ast::BinaryOp::Sub,
+    ".+" => ast::BinaryOp::ElemAdd,
+    ".-" => ast::BinaryOp::ElemSub,
+}
+AddUnaryOperator : ast::UnaryOp = {
+    "-" => ast::UnaryOp::Negative,
+}
+
+FactorOperator : ast::BinaryOp = {
+    "^" => ast::BinaryOp::Exp,
+    ".^" => ast::BinaryOp::ElemExp,
+}
+
+//✅ mul-operator :
+//✅    "*" | "/" | ".*" | "./"
+MulOperator : ast::BinaryOp = {
+    "*" => ast::BinaryOp::Mul,
+    "/" => ast::BinaryOp::Div,
+    ".*" => ast::BinaryOp::ElemMul,
+    "./" => ast::BinaryOp::ElemDiv,
+}
+
+SimpleExpression: ast::Expression = {
 //✅ simple-expression :
 //✅    logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
     #[precedence(level="11")] #[assoc(side="left")]
@@ -1008,95 +1045,33 @@ pub SimpleExpression: ast::Expression = {
     },
 //✅ relation :
 //✅    arithmetic-expression [ relational-operator arithmetic-expression ]
-//✅ relational-operator :
-//✅    "<" | "<=" | ">" | ">=" | "==" | "<>"
     #[precedence(level="7")] #[assoc(side="left")]
-    <lhs:SimpleExpression> "<" <rhs:SimpleExpression> => {
+    <lhs:SimpleExpression> <op:RelationalOperator> <rhs:SimpleExpression> => {
         ast::Expression::Binary {
-            op: ast::BinaryOp::LessThan,
+            op,
             lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ">" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::GreaterThan,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "<=" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::LessThanOrEqual,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ">=" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::GreaterThanOrEqual,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "==" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::Equal,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "<>" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::NotEqual,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    #[precedence(level="12")] #[assoc(side="left")]
-    "-" <rhs:SimpleExpression> => {
-        ast::Expression::Unary {
-            op: ast::UnaryOp::Negative,
             rhs: Box::new(rhs),
         }
     },
 //✅ arithmetic-expression :
 //✅    [ add-operator ] term { add-operator term }
-//✅ add-operator :
-//✅    "+" | "-" | ".+" | ".-"
+    #[precedence(level="6")] #[assoc(side="right")]
+    <op:AddUnaryOperator> <rhs:SimpleExpression> => {
+        ast::Expression::Unary {
+            op,
+            rhs: Box::new(rhs),
+        }
+    },
     #[precedence(level="5")] #[assoc(side="left")]
-    <lhs:SimpleExpression> "+" <rhs:SimpleExpression> => {
+    <lhs:SimpleExpression> <op:AddBinaryOperator> <rhs:SimpleExpression> => {
         ast::Expression::Binary {
-            op: ast::BinaryOp::Add,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ".+" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::ElemAdd,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "-" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::Sub,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ".-" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::ElemSub,
+            op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
     },
 //✅ term :
 //✅    factor { mul-operator factor }
-//✅ mul-operator :
-//✅    "*" | "/" | ".*" | "./"
     #[precedence(level="4")] #[assoc(side="left")]
     <lhs:SimpleExpression> "*" <rhs:SimpleExpression> => {
         ast::Expression::Binary {
@@ -1129,16 +1104,9 @@ pub SimpleExpression: ast::Expression = {
 //✅ factor :
 //✅    primary [ ( "^" | ".^" ) primary ]
     #[precedence(level="3")] #[assoc(side="left")]
-    <lhs:SimpleExpression> "^" <rhs:SimpleExpression> => {
+    <lhs:SimpleExpression> <op:FactorOperator> <rhs:SimpleExpression> => {
         ast::Expression::Binary {
-            op: ast::BinaryOp::Exp,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ".^" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::ElemExp,
+            op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }

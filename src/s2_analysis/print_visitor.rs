@@ -1,5 +1,5 @@
 use crate::s1_parser::ast;
-use crate::s1_parser::visitor::Visitor;
+use crate::s2_analysis::visitor::Visitor;
 
 pub struct PrintVisitor {
     level: usize,
@@ -8,7 +8,7 @@ pub struct PrintVisitor {
 
 impl PrintVisitor {
     pub fn print(&self, s: &str) {
-        println!("{}{}", self.indent.repeat(self.level - 1), s);
+        println!("{} {}", self.indent.repeat(self.level - 1), s);
     }
 }
 

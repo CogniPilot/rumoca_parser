@@ -1,7 +1,5 @@
 use clap::Parser;
-
-use rumoca_parser::PrintVisitor;
-use rumoca_parser::Walker;
+use rumoca_parser::{PrintVisitor, Visitable};
 
 #[derive(Parser, Debug)]
 #[command(version, about = "Rumoca Modelica Parser", long_about = None)]
@@ -17,13 +15,13 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let def = rumoca_parser::s1_parser::parse_file(&args.model_file);
+    let def = rumoca_parser::parse_file(&args.model_file);
 
     if args.verbose {
         println!("{:#?}", def);
     }
 
     let mut visitor = PrintVisitor::default();
-    Walker::walk_stored_definition(&mut visitor, &def);
+    def.accept(&mut visitor);
     Ok(())
 }

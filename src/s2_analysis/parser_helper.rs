@@ -1,8 +1,8 @@
-use crate::s1_parser::ast;
-use crate::s1_parser::modelica::StoredDefinitionParser;
-
 use crate::s0_lexer::lexer::Lexer;
 use crate::s0_lexer::tokens::LexicalError;
+
+use crate::s1_parser::ast;
+use crate::s1_parser::modelica::StoredDefinitionParser;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFiles;

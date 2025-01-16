@@ -252,10 +252,15 @@ pub enum UnaryOp {
     Paren,
     Not,
     Negative,
+    Positive,
+    ElemNegative,
+    ElemPositive,
 }
 
 #[derive(CommonTraits!)]
 pub enum BinaryOp {
+    Paren,
+    Not,
     Add,
     Sub,
     Mul,
