@@ -27,10 +27,6 @@ pub trait Visitor<'a> {
 
     fn enter_component_declaration(&mut self, _comp: &'a ast::ComponentDeclaration) {}
     fn exit_component_declaration(&mut self, _comp: &'a ast::ComponentDeclaration) {}
-
-    fn walk<T: Visitable<'a> + ?Sized>(&'a mut self, node: &'a T) {
-        node.accept(self);
-    }
 }
 
 pub trait Visitable<'a> {
