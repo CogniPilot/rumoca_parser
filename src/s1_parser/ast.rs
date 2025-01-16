@@ -4,11 +4,8 @@ derive_alias! {
     #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Hash)];
 }
 
-#[derive(CommonTraits!, Default)]
-pub struct Span {
-    pub left: usize,
-    pub right: usize,
-}
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// File Level Nodes
 
 #[derive(CommonTraits!, Default)]
 pub struct StoredDefinition {
@@ -20,31 +17,15 @@ pub struct StoredDefinition {
     pub rumoca_parser_git: String,
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Class Level Nodes
+
 #[derive(CommonTraits!, Default)]
 pub struct ClassDefinition {
     pub is_encapsulated: bool,
     pub is_final: bool,
     pub prefixes: ClassPrefixes,
     pub specifier: ClassSpecifier,
-}
-
-#[derive(CommonTraits!)]
-pub struct ComponentDeclaration {
-    pub declaration: Declaration,
-    pub condition_attribute: Option<Expression>,
-    pub description: Description,
-}
-
-#[derive(CommonTraits!)]
-pub struct ComponentDeclaration1 {
-    pub declaration: Declaration,
-    pub description: Description,
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct ClassPrefixes {
-    pub is_partial: bool,
-    pub class_type: ClassType,
 }
 
 #[derive(CommonTraits!)]
@@ -93,23 +74,6 @@ pub enum CompositionPart {
 }
 
 #[derive(CommonTraits!)]
-pub struct ComponentClause {
-    pub type_prefix: TypePrefix,
-    pub type_specifier: TypeSpecifier,
-    pub array_subscripts: Option<Vec<Subscript>>,
-    pub components: Vec<ComponentDeclaration>,
-}
-
-#[derive(CommonTraits!)]
-pub struct ElementFlags {
-    pub replaceable: bool,
-    pub redeclare: bool,
-    pub final_: bool,
-    pub inner: bool,
-    pub outer: bool,
-}
-
-#[derive(CommonTraits!)]
 pub enum Element {
     ImportClause {
         alias: String,
@@ -130,32 +94,87 @@ pub enum Element {
 }
 
 #[derive(CommonTraits!)]
-pub enum Causality {
-    None,
-    Input,
-    Output,
+pub struct ComponentDeclaration {
+    pub declaration: Declaration,
+    pub condition_attribute: Option<Expression>,
+    pub description: Description,
 }
 
 #[derive(CommonTraits!)]
-pub enum Variability {
-    Continuous,
-    Discrete,
-    Parameter,
-    Constant,
+pub struct ComponentDeclaration1 {
+    pub declaration: Declaration,
+    pub description: Description,
+}
+
+#[derive(CommonTraits!, Default)]
+pub struct ClassPrefixes {
+    pub is_partial: bool,
+    pub class_type: ClassType,
 }
 
 #[derive(CommonTraits!)]
-pub enum Visibility {
-    Public,
-    Protected,
+pub struct ComponentClause {
+    pub type_prefix: TypePrefix,
+    pub type_specifier: TypeSpecifier,
+    pub array_subscripts: Option<ArraySubscripts>,
+    pub components: Vec<ComponentDeclaration>,
 }
 
 #[derive(CommonTraits!)]
-pub enum Connection {
-    None,
-    Flow,
-    Stream,
+pub struct ComponentClause1 {
+    pub type_prefix: TypePrefix,
+    pub type_specifier: TypeSpecifier,
+    pub component_declaration1: ComponentDeclaration1,
 }
+
+#[derive(CommonTraits!)]
+pub struct Declaration {
+    pub name: String,
+    pub array_subscripts: Option<ArraySubscripts>,
+    pub modification: Option<Modification>,
+}
+
+#[derive(CommonTraits!)]
+pub struct TypeSpecifier {
+    pub leading_period: bool,
+    pub name: Name,
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Equations
+
+#[derive(CommonTraits!)]
+pub enum Equation {
+    Simple {
+        lhs: Expression,
+        rhs: Expression,
+        description: Description,
+    },
+    If {
+        if_blocks: Vec<IfEquationBlock>,
+        else_eqs: Vec<Equation>,
+        description: Description,
+    },
+    For {
+        indices: Vec<ForIndex>,
+        eqs: Vec<Equation>,
+        description: Description,
+    },
+    Connect {
+        lhs: ComponentReference,
+        rhs: ComponentReference,
+        description: Description,
+    },
+}
+
+#[derive(CommonTraits!)]
+pub struct IfEquationBlock {
+    pub cond: Expression,
+    pub eqs: Vec<Equation>,
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Statements
 
 #[derive(CommonTraits!)]
 pub enum Statement {
@@ -188,9 +207,52 @@ pub enum Statement {
 }
 
 #[derive(CommonTraits!)]
-pub struct RefPart {
-    pub name: String,
-    pub array_subscripts: Vec<Subscript>,
+pub struct IfStatementBlock {
+    pub cond: Expression,
+    pub stmts: Vec<Statement>,
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Expressions
+
+#[derive(CommonTraits!)]
+pub enum Expression {
+    UnsignedInteger(String),
+    UnsignedReal(String),
+    Boolean(bool),
+    //String(String),
+    Ref {
+        comp: ComponentReference,
+    },
+    Unary {
+        op: UnaryOp,
+        rhs: Box<Expression>,
+    },
+    Binary {
+        op: BinaryOp,
+        lhs: Box<Expression>,
+        rhs: Box<Expression>,
+    },
+    If {
+        if_blocks: Vec<IfExpressionBlock>,
+        else_expr: Box<Option<Expression>>,
+    },
+    ArrayArguments {
+        args: Vec<Expression>,
+    },
+    FunctionCall {
+        comp: ComponentReference,
+        args: Vec<Expression>,
+    },
+    Der {
+        args: Vec<Expression>,
+    },
+}
+
+#[derive(CommonTraits!)]
+pub struct IfExpressionBlock {
+    pub cond: Expression,
+    pub expr: Expression,
 }
 
 #[derive(CommonTraits!)]
@@ -200,27 +262,69 @@ pub struct ComponentReference {
 }
 
 #[derive(CommonTraits!)]
-pub enum Equation {
-    Simple {
-        lhs: Expression,
-        rhs: Expression,
+pub struct RefPart {
+    pub name: String,
+    pub array_subscripts: Option<ArraySubscripts>,
+}
+
+#[derive(CommonTraits!)]
+pub struct ArraySubscripts {
+    pub sub: Vec<Subscript>,
+}
+
+#[derive(CommonTraits!)]
+pub enum Subscript {
+    Colon,
+    Expression(Expression),
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Modification
+
+#[derive(CommonTraits!)]
+pub enum Argument {
+    Modification {
+        name: Name,
+        each: bool,
+        is_final: bool,
+        modification: Option<Modification>,
         description: Description,
     },
-    If {
-        if_blocks: Vec<IfEquationBlock>,
-        else_eqs: Vec<Equation>,
-        description: Description,
+    Replaceable,
+    Redeclaration,
+}
+
+#[derive(CommonTraits!)]
+pub enum Modification {
+    Expression {
+        expr: ModExpr,
     },
-    For {
-        indices: Vec<ForIndex>,
-        eqs: Vec<Equation>,
-        description: Description,
+    Class {
+        args: Vec<Argument>,
+        expr: Option<ModExpr>,
     },
-    Connect {
-        lhs: ComponentReference,
-        rhs: ComponentReference,
-        description: Description,
-    },
+}
+
+#[derive(CommonTraits!)]
+pub enum ModExpr {
+    Break,
+    Expression { expr: Expression },
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Common
+
+#[derive(CommonTraits!, Default)]
+pub struct Description {
+    pub strings: Vec<String>,
+    pub annotation: Vec<Argument>,
+}
+
+#[derive(CommonTraits!)]
+pub struct TypePrefix {
+    pub connection: Connection,
+    pub variability: Variability,
+    pub causality: Causality,
 }
 
 #[derive(CommonTraits!)]
@@ -229,22 +333,50 @@ pub struct ForIndex {
     pub in_expr: Option<Expression>,
 }
 
-#[derive(CommonTraits!)]
-pub struct IfEquationBlock {
-    pub cond: Expression,
-    pub eqs: Vec<Equation>,
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Simple Terminal Nodes
+
+#[derive(CommonTraits!, Default)]
+pub struct Span {
+    pub left: usize,
+    pub right: usize,
 }
 
 #[derive(CommonTraits!)]
-pub struct IfStatementBlock {
-    pub cond: Expression,
-    pub stmts: Vec<Statement>,
+pub struct ElementFlags {
+    pub replaceable: bool,
+    pub redeclare: bool,
+    pub final_: bool,
+    pub inner: bool,
+    pub outer: bool,
 }
 
 #[derive(CommonTraits!)]
-pub struct IfExpressionBlock {
-    pub cond: Expression,
-    pub expr: Expression,
+pub enum Causality {
+    None,
+    Input,
+    Output,
+}
+
+#[derive(CommonTraits!)]
+pub enum Variability {
+    Continuous,
+    Discrete,
+    Parameter,
+    Constant,
+}
+
+#[derive(CommonTraits!)]
+pub enum Visibility {
+    Public,
+    Protected,
+}
+
+#[derive(CommonTraits!)]
+pub enum Connection {
+    None,
+    Flow,
+    Stream,
 }
 
 #[derive(CommonTraits!)]
@@ -282,114 +414,6 @@ pub enum BinaryOp {
     Range,
 }
 
-#[derive(CommonTraits!)]
-pub enum Expression {
-    UnsignedInteger(String),
-    UnsignedReal(String),
-    Boolean(bool),
-    //String(String),
-    Ref {
-        comp: ComponentReference,
-    },
-    Unary {
-        op: UnaryOp,
-        rhs: Box<Expression>,
-    },
-    Binary {
-        op: BinaryOp,
-        lhs: Box<Expression>,
-        rhs: Box<Expression>,
-    },
-    If {
-        if_blocks: Vec<IfExpressionBlock>,
-        else_expr: Box<Option<Expression>>,
-    },
-    ArrayArguments {
-        args: Vec<Expression>,
-    },
-    FunctionCall {
-        comp: ComponentReference,
-        args: Vec<Expression>,
-    },
-    Der {
-        args: Vec<Expression>,
-    },
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct Description {
-    pub strings: Vec<String>,
-    pub annotation: Vec<Argument>,
-}
-
-#[derive(CommonTraits!)]
-pub enum ModExpr {
-    Break,
-    Expression { expr: Expression },
-}
-
-#[derive(CommonTraits!)]
-pub enum Modification {
-    Expression {
-        expr: ModExpr,
-    },
-    Class {
-        args: Vec<Argument>,
-        expr: Option<ModExpr>,
-    },
-}
-
-#[derive(CommonTraits!)]
-pub struct Declaration {
-    pub name: String,
-    pub array_subscripts: Option<Vec<Subscript>>,
-    pub modification: Option<Modification>,
-}
-
-#[derive(CommonTraits!)]
-pub enum Argument {
-    Modification {
-        name: Name,
-        each: bool,
-        is_final: bool,
-        modification: Option<Modification>,
-        description: Description,
-    },
-    Replaceable,
-    Redeclaration,
-}
-
-#[derive(CommonTraits!)]
-pub struct TypePrefix {
-    pub connection: Connection,
-    pub variability: Variability,
-    pub causality: Causality,
-}
-
-#[derive(CommonTraits!)]
-pub struct ComponentClause1 {
-    pub type_prefix: TypePrefix,
-    pub type_specifier: TypeSpecifier,
-    pub component_declaration1: ComponentDeclaration1,
-}
-
-#[derive(CommonTraits!)]
-pub struct Name {
-    pub ident: Vec<String>,
-}
-
-#[derive(CommonTraits!)]
-pub struct TypeSpecifier {
-    pub leading_period: bool,
-    pub name: Name,
-}
-
-#[derive(CommonTraits!)]
-pub enum Subscript {
-    Colon,
-    Expression(Expression),
-}
-
 #[derive(CommonTraits!, Default)]
 pub enum ClassType {
     #[default]
@@ -409,6 +433,13 @@ pub enum ClassType {
     Operator,
 }
 
+#[derive(CommonTraits!)]
+pub struct Name {
+    pub ident: Vec<String>,
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Unit Testing
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -6,7 +6,6 @@ grammar;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // LALRPOP macros
-
 SeparatedList<T, Str>: Vec<T> = {
     <mut v:(<T> Str)*> <e:T?> => match e {
         None => v,
@@ -1203,7 +1202,7 @@ pub RefPart: ast::RefPart = {
     <name:IDENT> <array_subscripts:ArraySubscripts?> => {
         ast::RefPart {
             name,
-            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
+            array_subscripts,
         }
     }
 }
@@ -1251,9 +1250,11 @@ pub FunctionCallArguments: Vec<ast::Expression> = {
 
 //✅ array-subscripts :
 //✅    "[" subscript { "," subscript } "]"
-pub ArraySubscripts: Vec<ast::Subscript> = {
-    "[" <subscripts: SeparatedList<Subscript, ",">> "]" => {
-        subscripts
+pub ArraySubscripts: ast::ArraySubscripts = {
+    "[" <sub: SeparatedList<Subscript, ",">> "]" => {
+        ast::ArraySubscripts {
+            sub,
+        }
     },
 }
 //✅ subscript :

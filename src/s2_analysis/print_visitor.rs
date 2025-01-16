@@ -34,18 +34,18 @@ impl<'a> Visitor<'a> for PrintVisitor {
         self.print("Stored Definition");
     }
 
-    fn enter_class_definition(&mut self, class: &'a ast::ClassDefinition) {
-        if let ast::ClassSpecifier::Long { name, .. } = &class.specifier {
+    fn enter_class_definition(&mut self, def: &'a ast::ClassDefinition) {
+        if let ast::ClassSpecifier::Long { name, .. } = &def.specifier {
             self.print(&format!("class {}", name));
         }
     }
 
-    fn exit_class_definition(&mut self, _class: &'a ast::ClassDefinition) {
+    fn exit_class_definition(&mut self, _def: &'a ast::ClassDefinition) {
         println!("\n");
     }
 
-    fn enter_expression(&mut self, expr: &'a ast::Expression) {
-        match expr {
+    fn enter_expression(&mut self, def: &'a ast::Expression) {
+        match def {
             ast::Expression::Binary { op, .. } => {
                 self.print(&format!("{:?}", op));
             }
@@ -56,13 +56,13 @@ impl<'a> Visitor<'a> for PrintVisitor {
                 self.print("ref");
             }
             ast::Expression::UnsignedInteger(val) => {
-                self.print(&format!("{:?}", val));
+                self.print(&val.to_string());
             }
             ast::Expression::UnsignedReal(val) => {
-                self.print(&format!("{:?}", val));
+                self.print(&val.to_string());
             }
             ast::Expression::Boolean(val) => {
-                self.print(&format!("{:?}", val));
+                self.print(&format!("{}", val));
             }
             ast::Expression::If { .. } => {
                 self.print("if");
@@ -79,8 +79,8 @@ impl<'a> Visitor<'a> for PrintVisitor {
         }
     }
 
-    fn enter_equation(&mut self, eq: &'a ast::Equation) {
-        match eq {
+    fn enter_equation(&mut self, def: &'a ast::Equation) {
+        match def {
             ast::Equation::Connect { .. } => {
                 self.print("connect");
             }
@@ -94,25 +94,14 @@ impl<'a> Visitor<'a> for PrintVisitor {
         }
     }
 
-    fn exit_element(&mut self, elem: &'a ast::Element) {
-        match elem {
-            ast::Element::ComponentClause { clause, .. } => {
-                for comp in clause.components.iter() {
-                    self.print(&format!("component: {}", comp.declaration.name));
-                }
-            }
-            ast::Element::ImportClause { name, .. } => {
-                self.print(&format!("import: {}", name.ident.join(".")));
-            }
-            ast::Element::ClassDefinition { .. } => {}
-            ast::Element::ExtendsClause { .. } => {}
-        }
+    fn exit_component_declaration(&mut self, def: &'a ast::ComponentDeclaration) {
+        self.print(&format!("component: {}", def.declaration.name));
     }
 
-    fn exit_component_reference(&mut self, comp: &'a ast::ComponentReference) {
+    fn exit_component_reference(&mut self, def: &'a ast::ComponentReference) {
         let mut s: String = "".to_string();
-        for (index, part) in comp.parts.iter().enumerate() {
-            if index != 0 || comp.local {
+        for (index, part) in def.parts.iter().enumerate() {
+            if index != 0 || def.local {
                 s += ".";
             }
             s += &part.name;
