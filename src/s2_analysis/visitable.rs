@@ -1,18 +1,18 @@
 use super::visitor::Visitor;
 use crate::s1_parser::ast;
 
-pub trait Visitable<'a> {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V);
+pub trait Visitable {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V);
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // File Level Nodes
 
-impl<'a> Visitable<'a> for ast::StoredDefinition {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::StoredDefinition {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_stored_definition(self);
-        for class in self.classes.iter() {
+        for class in self.classes.iter_mut() {
             class.accept(visitor);
         }
         visitor.exit_stored_definition(self);
@@ -23,8 +23,8 @@ impl<'a> Visitable<'a> for ast::StoredDefinition {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Class Level Node
 
-impl<'a> Visitable<'a> for ast::ClassDefinition {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ClassDefinition {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_definition(self);
         self.specifier.accept(visitor);
@@ -33,13 +33,13 @@ impl<'a> Visitable<'a> for ast::ClassDefinition {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ClassSpecifier {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ClassSpecifier {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_specifier(self);
-        match &self {
+        match self {
             ast::ClassSpecifier::Long { composition, .. } => {
-                for part in composition.iter() {
+                for part in composition.iter_mut() {
                     part.accept(visitor);
                 }
             }
@@ -49,11 +49,11 @@ impl<'a> Visitable<'a> for ast::ClassSpecifier {
                 ..
             } => {
                 if let Some(modifs) = modification {
-                    for modif in modifs.iter() {
+                    for modif in modifs.iter_mut() {
                         modif.accept(visitor);
                     }
                 }
-                for part in composition.iter() {
+                for part in composition.iter_mut() {
                     part.accept(visitor);
                 }
             }
@@ -63,8 +63,8 @@ impl<'a> Visitable<'a> for ast::ClassSpecifier {
     }
 }
 
-impl<'a> Visitable<'a> for ast::CompositionPart {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::CompositionPart {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_composition_part(self);
         match self {
@@ -73,12 +73,12 @@ impl<'a> Visitable<'a> for ast::CompositionPart {
                 elements,
             } => {
                 visibility.accept(visitor);
-                for elem in elements.iter() {
+                for elem in elements.iter_mut() {
                     elem.accept(visitor);
                 }
             }
             ast::CompositionPart::AlgorithmSection { statements, .. } => {
-                for stmt in statements.iter() {
+                for stmt in statements.iter_mut() {
                     stmt.accept(visitor);
                 }
             }
@@ -86,7 +86,7 @@ impl<'a> Visitable<'a> for ast::CompositionPart {
                 span, equations, ..
             } => {
                 span.accept(visitor);
-                for eq in equations.iter() {
+                for eq in equations.iter_mut() {
                     eq.accept(visitor);
                 }
             }
@@ -96,8 +96,8 @@ impl<'a> Visitable<'a> for ast::CompositionPart {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Element {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Element {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_element(self);
         match self {
@@ -124,12 +124,12 @@ impl<'a> Visitable<'a> for ast::Element {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ComponentDeclaration {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ComponentDeclaration {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_component_declaration(self);
         self.declaration.accept(visitor);
-        if let Some(expr) = self.condition_attribute.as_ref() {
+        if let Some(expr) = self.condition_attribute.as_mut() {
             expr.accept(visitor);
         }
         self.description.accept(visitor);
@@ -138,8 +138,8 @@ impl<'a> Visitable<'a> for ast::ComponentDeclaration {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ComponentDeclaration1 {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ComponentDeclaration1 {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_component_declaration1(self);
         self.declaration.accept(visitor);
@@ -149,8 +149,8 @@ impl<'a> Visitable<'a> for ast::ComponentDeclaration1 {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ClassPrefixes {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ClassPrefixes {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_prefixes(self);
         self.class_type.accept(visitor);
@@ -159,16 +159,16 @@ impl<'a> Visitable<'a> for ast::ClassPrefixes {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ComponentClause {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ComponentClause {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_component_clause(self);
         self.type_prefix.accept(visitor);
         self.type_specifier.accept(visitor);
-        if let Some(subs) = self.array_subscripts.as_ref() {
+        if let Some(subs) = self.array_subscripts.as_mut() {
             subs.accept(visitor);
         }
-        for comp in self.components.iter() {
+        for comp in self.components.iter_mut() {
             comp.accept(visitor);
         }
         visitor.exit_component_clause(self);
@@ -176,8 +176,8 @@ impl<'a> Visitable<'a> for ast::ComponentClause {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ComponentClause1 {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ComponentClause1 {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_component_clause1(self);
         self.type_prefix.accept(visitor);
@@ -188,14 +188,14 @@ impl<'a> Visitable<'a> for ast::ComponentClause1 {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Declaration {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Declaration {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_declaration(self);
-        if let Some(subs) = self.array_subscripts.as_ref() {
+        if let Some(subs) = self.array_subscripts.as_mut() {
             subs.accept(visitor);
         }
-        if let Some(modif) = self.modification.as_ref() {
+        if let Some(modif) = self.modification.as_mut() {
             modif.accept(visitor);
         }
         visitor.exit_declaration(self);
@@ -203,8 +203,8 @@ impl<'a> Visitable<'a> for ast::Declaration {
     }
 }
 
-impl<'a> Visitable<'a> for ast::TypeSpecifier {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::TypeSpecifier {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_type_specifier(self);
         self.name.accept(visitor);
@@ -216,8 +216,8 @@ impl<'a> Visitable<'a> for ast::TypeSpecifier {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Equation Nodes
 
-impl<'a> Visitable<'a> for ast::Equation {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Equation {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_equation(self);
         match self {
@@ -244,13 +244,13 @@ impl<'a> Visitable<'a> for ast::Equation {
                 else_eqs,
                 description,
             } => {
-                for block in if_blocks.iter() {
+                for block in if_blocks.iter_mut() {
                     block.cond.accept(visitor);
-                    for block_eq in block.eqs.iter() {
+                    for block_eq in block.eqs.iter_mut() {
                         block_eq.accept(visitor);
                     }
                 }
-                for else_eq in else_eqs.iter() {
+                for else_eq in else_eqs.iter_mut() {
                     else_eq.accept(visitor);
                 }
                 description.accept(visitor);
@@ -260,10 +260,10 @@ impl<'a> Visitable<'a> for ast::Equation {
                 eqs,
                 description,
             } => {
-                for index in indices.iter() {
+                for index in indices.iter_mut() {
                     index.accept(visitor);
                 }
-                for eq in eqs.iter() {
+                for eq in eqs.iter_mut() {
                     eq.accept(visitor);
                 }
                 description.accept(visitor);
@@ -274,10 +274,10 @@ impl<'a> Visitable<'a> for ast::Equation {
     }
 }
 
-impl<'a> Visitable<'a> for ast::IfEquationBlock {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::IfEquationBlock {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         self.cond.accept(visitor);
-        for eq in self.eqs.iter() {
+        for eq in self.eqs.iter_mut() {
             eq.accept(visitor);
         }
     }
@@ -286,8 +286,8 @@ impl<'a> Visitable<'a> for ast::IfEquationBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Statement Nodes
 
-impl<'a> Visitable<'a> for ast::Statement {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Statement {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_statement(self);
         match self {
@@ -296,18 +296,18 @@ impl<'a> Visitable<'a> for ast::Statement {
                 else_stmts,
                 ..
             } => {
-                for block in if_blocks.iter() {
+                for block in if_blocks.iter_mut() {
                     block.cond.accept(visitor);
-                    for block_stmt in block.stmts.iter() {
+                    for block_stmt in block.stmts.iter_mut() {
                         block_stmt.accept(visitor);
                     }
                 }
-                for else_stmt in else_stmts.iter() {
+                for else_stmt in else_stmts.iter_mut() {
                     else_stmt.accept(visitor);
                 }
             }
             ast::Statement::For { stmts, .. } => {
-                for stmt in stmts.iter() {
+                for stmt in stmts.iter_mut() {
                     stmt.accept(visitor);
                 }
             }
@@ -317,7 +317,7 @@ impl<'a> Visitable<'a> for ast::Statement {
             }
             ast::Statement::While { cond, stmts, .. } => {
                 cond.accept(visitor);
-                for stmt in stmts.iter() {
+                for stmt in stmts.iter_mut() {
                     stmt.accept(visitor);
                 }
             }
@@ -329,10 +329,10 @@ impl<'a> Visitable<'a> for ast::Statement {
     }
 }
 
-impl<'a> Visitable<'a> for ast::IfStatementBlock {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::IfStatementBlock {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         self.cond.accept(visitor);
-        for stmt in self.stmts.iter() {
+        for stmt in self.stmts.iter_mut() {
             stmt.accept(visitor);
         }
     }
@@ -341,8 +341,8 @@ impl<'a> Visitable<'a> for ast::IfStatementBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Expression Nodes
 
-impl<'a> Visitable<'a> for ast::Expression {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Expression {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_expression(self);
         match self {
@@ -360,16 +360,16 @@ impl<'a> Visitable<'a> for ast::Expression {
                 if_blocks,
                 else_expr,
             } => {
-                for block in if_blocks.iter() {
+                for block in if_blocks.iter_mut() {
                     block.cond.accept(visitor);
                     block.expr.accept(visitor);
                 }
-                if let Some(ref expr) = **else_expr {
+                if let Some(ref mut expr) = **else_expr {
                     expr.accept(visitor);
                 }
             }
             ast::Expression::Der { args } => {
-                for arg in args.iter() {
+                for arg in args.iter_mut() {
                     arg.accept(visitor);
                 }
             }
@@ -377,13 +377,13 @@ impl<'a> Visitable<'a> for ast::Expression {
             ast::Expression::UnsignedReal(_) => {}
             ast::Expression::Boolean(_) => {}
             ast::Expression::ArrayArguments { args } => {
-                for arg in args.iter() {
+                for arg in args.iter_mut() {
                     arg.accept(visitor);
                 }
             }
             ast::Expression::FunctionCall { comp, args } => {
                 comp.accept(visitor);
-                for arg in args.iter() {
+                for arg in args.iter_mut() {
                     arg.accept(visitor);
                 }
             }
@@ -393,18 +393,18 @@ impl<'a> Visitable<'a> for ast::Expression {
     }
 }
 
-impl<'a> Visitable<'a> for ast::IfExpressionBlock {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::IfExpressionBlock {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         self.cond.accept(visitor);
         self.expr.accept(visitor);
     }
 }
 
-impl<'a> Visitable<'a> for ast::ComponentReference {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ComponentReference {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_component_reference(self);
-        for part in self.parts.iter() {
+        for part in self.parts.iter_mut() {
             part.accept(visitor);
         }
         visitor.exit_component_reference(self);
@@ -412,11 +412,11 @@ impl<'a> Visitable<'a> for ast::ComponentReference {
     }
 }
 
-impl<'a> Visitable<'a> for ast::RefPart {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::RefPart {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_ref_part(self);
-        if let Some(subs) = self.array_subscripts.as_ref() {
+        if let Some(subs) = self.array_subscripts.as_mut() {
             subs.accept(visitor);
         }
         visitor.exit_ref_part(self);
@@ -424,11 +424,11 @@ impl<'a> Visitable<'a> for ast::RefPart {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ArraySubscripts {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ArraySubscripts {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_array_subscripts(self);
-        for sub in self.sub.iter() {
+        for sub in self.sub.iter_mut() {
             sub.accept(visitor);
         }
         visitor.exit_array_subscripts(self);
@@ -436,8 +436,8 @@ impl<'a> Visitable<'a> for ast::ArraySubscripts {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Subscript {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Subscript {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_subscript(self);
         match self {
@@ -454,8 +454,8 @@ impl<'a> Visitable<'a> for ast::Subscript {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Modification Nodes
 
-impl<'a> Visitable<'a> for ast::Argument {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Argument {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_argument(self);
         match self {
@@ -463,7 +463,7 @@ impl<'a> Visitable<'a> for ast::Argument {
                 name, modification, ..
             } => {
                 name.accept(visitor);
-                if let Some(modif) = modification.as_ref() {
+                if let Some(modif) = modification.as_mut() {
                     modif.accept(visitor);
                 }
             }
@@ -475,8 +475,8 @@ impl<'a> Visitable<'a> for ast::Argument {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Modification {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Modification {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_modification(self);
         match self {
@@ -484,10 +484,10 @@ impl<'a> Visitable<'a> for ast::Modification {
                 expr.accept(visitor);
             }
             ast::Modification::Class { args, expr } => {
-                for arg in args.iter() {
+                for arg in args.iter_mut() {
                     arg.accept(visitor);
                 }
-                if let Some(modif) = expr.as_ref() {
+                if let Some(modif) = expr.as_mut() {
                     modif.accept(visitor);
                 }
             }
@@ -497,8 +497,8 @@ impl<'a> Visitable<'a> for ast::Modification {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ModExpr {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ModExpr {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_mod_expr(self);
         match self {
@@ -515,11 +515,11 @@ impl<'a> Visitable<'a> for ast::ModExpr {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Common Nodes
 
-impl<'a> Visitable<'a> for ast::Description {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Description {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_description(self);
-        for arg in self.annotation.iter() {
+        for arg in self.annotation.iter_mut() {
             arg.accept(visitor);
         }
         visitor.exit_description(self);
@@ -527,8 +527,8 @@ impl<'a> Visitable<'a> for ast::Description {
     }
 }
 
-impl<'a> Visitable<'a> for ast::TypePrefix {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::TypePrefix {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_type_prefix(self);
         self.connection.accept(visitor);
@@ -539,9 +539,9 @@ impl<'a> Visitable<'a> for ast::TypePrefix {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ForIndex {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
-        if let Some(expr) = self.in_expr.as_ref() {
+impl Visitable for ast::ForIndex {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
+        if let Some(expr) = self.in_expr.as_mut() {
             expr.accept(visitor);
         }
     }
@@ -550,8 +550,8 @@ impl<'a> Visitable<'a> for ast::ForIndex {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Simple Terminal Nodes
 
-impl<'a> Visitable<'a> for ast::Span {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Span {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_span(self);
         visitor.exit_span(self);
@@ -559,8 +559,8 @@ impl<'a> Visitable<'a> for ast::Span {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ElementFlags {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ElementFlags {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_element_flags(self);
         visitor.exit_element_flags(self);
@@ -568,8 +568,8 @@ impl<'a> Visitable<'a> for ast::ElementFlags {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Causality {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Causality {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_causality(self);
         visitor.exit_causality(self);
@@ -577,8 +577,8 @@ impl<'a> Visitable<'a> for ast::Causality {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Variability {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Variability {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_variability(self);
         visitor.exit_variability(self);
@@ -586,8 +586,8 @@ impl<'a> Visitable<'a> for ast::Variability {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Visibility {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Visibility {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_visibility(self);
         visitor.exit_visibility(self);
@@ -595,8 +595,8 @@ impl<'a> Visitable<'a> for ast::Visibility {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Connection {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Connection {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_connection(self);
         visitor.exit_connection(self);
@@ -604,8 +604,8 @@ impl<'a> Visitable<'a> for ast::Connection {
     }
 }
 
-impl<'a> Visitable<'a> for ast::UnaryOp {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::UnaryOp {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_unary_op(self);
         visitor.exit_unary_op(self);
@@ -613,8 +613,8 @@ impl<'a> Visitable<'a> for ast::UnaryOp {
     }
 }
 
-impl<'a> Visitable<'a> for ast::BinaryOp {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::BinaryOp {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_binary_op(self);
         visitor.exit_binary_op(self);
@@ -622,8 +622,8 @@ impl<'a> Visitable<'a> for ast::BinaryOp {
     }
 }
 
-impl<'a> Visitable<'a> for ast::ClassType {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::ClassType {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_type(self);
         visitor.exit_class_type(self);
@@ -631,8 +631,8 @@ impl<'a> Visitable<'a> for ast::ClassType {
     }
 }
 
-impl<'a> Visitable<'a> for ast::Name {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+impl Visitable for ast::Name {
+    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_name(self);
         visitor.exit_name(self);

@@ -1,11 +1,11 @@
-model SimpleCicuit
+model SimpleCircuit
     Resistor R1(R=10);
     Capacitor C(C=0.01);
     Resistor R2(R=100);
     Inductor L(L=0.1);
     VsourceAC AC;
     Ground G;
-equation
+equation    
     connect(AC.p, R1.p);  // Wire 1, Capacitor circuit
     connect(R1.n, C.p);   // Wire 2
     connect(C.n, Ac.n);   // Wire 3
@@ -13,7 +13,7 @@ equation
     connect(R2.n, L.p);   // Wire 5
     connect(L.n, C.n);    // Wire 6
     connect(AC.n, G.p);   // Wire 7, Ground
-end SimpleCicuit;
+end SimpleCircuit;
 
 partial class TwoPin
     Pin p, n;

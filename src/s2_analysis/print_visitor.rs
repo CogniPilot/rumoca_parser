@@ -21,7 +21,7 @@ impl Default for PrintVisitor {
     }
 }
 
-impl<'a> Visitor<'a> for PrintVisitor {
+impl Visitor for PrintVisitor {
     fn enter_any(&mut self) {
         self.level += 1;
     }
@@ -30,21 +30,21 @@ impl<'a> Visitor<'a> for PrintVisitor {
         self.level -= 1;
     }
 
-    fn enter_stored_definition(&mut self, _def: &'a ast::StoredDefinition) {
+    fn enter_stored_definition(&mut self, _def: &mut ast::StoredDefinition) {
         self.print("Stored Definition");
     }
 
-    fn enter_class_definition(&mut self, def: &'a ast::ClassDefinition) {
+    fn enter_class_definition(&mut self, def: &mut ast::ClassDefinition) {
         if let ast::ClassSpecifier::Long { name, .. } = &def.specifier {
             self.print(&format!("class {}", name));
         }
     }
 
-    fn exit_class_definition(&mut self, _def: &'a ast::ClassDefinition) {
+    fn exit_class_definition(&mut self, _def: &mut ast::ClassDefinition) {
         println!("\n");
     }
 
-    fn enter_expression(&mut self, def: &'a ast::Expression) {
+    fn enter_expression(&mut self, def: &mut ast::Expression) {
         match def {
             ast::Expression::Binary { op, .. } => {
                 self.print(&format!("{:?}", op));
@@ -79,7 +79,7 @@ impl<'a> Visitor<'a> for PrintVisitor {
         }
     }
 
-    fn enter_equation(&mut self, def: &'a ast::Equation) {
+    fn enter_equation(&mut self, def: &mut ast::Equation) {
         match def {
             ast::Equation::Connect { .. } => {
                 self.print("connect");
@@ -94,11 +94,11 @@ impl<'a> Visitor<'a> for PrintVisitor {
         }
     }
 
-    fn exit_component_declaration(&mut self, def: &'a ast::ComponentDeclaration) {
+    fn enter_component_declaration(&mut self, def: &mut ast::ComponentDeclaration) {
         self.print(&format!("component: {}", def.declaration.name));
     }
 
-    fn exit_component_reference(&mut self, def: &'a ast::ComponentReference) {
+    fn exit_component_reference(&mut self, def: &mut ast::ComponentReference) {
         let mut s: String = "".to_string();
         for (index, part) in def.parts.iter().enumerate() {
             if index != 0 || def.local {
