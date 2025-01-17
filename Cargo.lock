@@ -635,6 +635,7 @@ dependencies = [
  "logos",
  "macro_rules_attribute",
  "md5",
+ "paste",
  "rerun_except",
  "serde",
 ]

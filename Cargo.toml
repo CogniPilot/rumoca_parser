@@ -17,6 +17,7 @@ lalrpop-util = "0.22.0"
 logos = "0.15.0"
 macro_rules_attribute = "0.2.0"
 md5 = "0.7.0"
+paste = "1.0.15"
 serde = { version = "1.0.214", features = ["derive", "serde_derive"] }
 
 [profile.dev]

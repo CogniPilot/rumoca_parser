@@ -1,5 +1,6 @@
 use super::visitor::Visitor;
 use crate::s1_parser::ast;
+use paste::paste;
 
 pub trait Visitable {
     fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V);
@@ -550,92 +551,32 @@ impl Visitable for ast::ForIndex {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Simple Terminal Nodes
 
-impl Visitable for ast::Span {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_span(self);
-        visitor.exit_span(self);
-        visitor.exit_any();
-    }
+macro_rules! accept_terminal_node {
+    ($($name:ident),*) => {
+        paste! {
+            $(
+                impl Visitable for ast::$name {
+                    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
+                        visitor.enter_any();
+                        visitor.[<enter_ $name:snake>](self);
+                        visitor.[<exit_ $name:snake>](self);
+                        visitor.exit_any();
+                    }
+                }
+            )*
+        }
+    };
 }
 
-impl Visitable for ast::ElementFlags {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_element_flags(self);
-        visitor.exit_element_flags(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::Causality {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_causality(self);
-        visitor.exit_causality(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::Variability {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_variability(self);
-        visitor.exit_variability(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::Visibility {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_visibility(self);
-        visitor.exit_visibility(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::Connection {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_connection(self);
-        visitor.exit_connection(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::UnaryOp {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_unary_op(self);
-        visitor.exit_unary_op(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::BinaryOp {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_binary_op(self);
-        visitor.exit_binary_op(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::ClassType {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_class_type(self);
-        visitor.exit_class_type(self);
-        visitor.exit_any();
-    }
-}
-
-impl Visitable for ast::Name {
-    fn accept<V: Visitor + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_name(self);
-        visitor.exit_name(self);
-        visitor.exit_any();
-    }
-}
+accept_terminal_node!(
+    Span,
+    ElementFlags,
+    Causality,
+    Variability,
+    Visibility,
+    Connection,
+    UnaryOp,
+    BinaryOp,
+    ClassType,
+    Name
+);
