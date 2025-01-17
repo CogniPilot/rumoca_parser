@@ -1,8 +1,8 @@
 [package]
 name = "rumoca_parser"
 authors = ["James Goppert", "Benjamin Perseghetti"]
-description = "A Modelica translator with focus on Casadi, Sympy, JAX, and Collimator generation"
-version = "0.6.3"
+description = "A Modelica parser leveraging LALRPOP"
+version = "0.7.0"
 edition = "2021"
 license = "Apache-2.0"
 
