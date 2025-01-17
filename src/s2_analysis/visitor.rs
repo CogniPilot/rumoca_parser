@@ -5,8 +5,10 @@ macro_rules! define_visitor_methods {
     ($($name:ident),*) => {
         paste! {
             $(
-                fn [<enter_ $name:snake>](&mut self, _def: &mut ast::$name) {}
-                fn [<exit_ $name:snake>](&mut self, _def: &mut ast::$name) {}
+                #[allow(unused_variables)]
+                fn [<enter_ $name:snake>](&mut self, node: &mut ast::$name) {}
+                #[allow(unused_variables)]
+                fn [<exit_ $name:snake>](&mut self, node: &mut ast::$name) {}
             )*
         }
     };
