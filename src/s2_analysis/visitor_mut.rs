@@ -1,23 +1,23 @@
 use crate::s1_parser::ast;
 use paste::paste;
 
-macro_rules! define_visitor_methods {
+macro_rules! define_visitor_mut_methods {
     ($($name:ident),*) => {
         paste! {
             $(
-                fn [<enter_ $name:snake>](&mut self, node: &'a ast::$name) {}
-                fn [<exit_ $name:snake>](&mut self, node: &'a ast::$name) {}
+                fn [<enter_ $name:snake _mut>](&mut self, node: & mut ast::$name) {}
+                fn [<exit_ $name:snake _mut>](&mut self, node: & mut ast::$name) {}
             )*
         }
     };
 }
 
 #[allow(unused_variables)]
-pub trait Visitor<'a> {
+pub trait VisitorMut {
     fn enter_any(&mut self) {}
     fn exit_any(&mut self) {}
 
-    define_visitor_methods!(
+    define_visitor_mut_methods!(
         StoredDefinition,
         ClassDefinition,
         ClassSpecifier,

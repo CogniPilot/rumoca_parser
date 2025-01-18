@@ -21,7 +21,7 @@ impl Default for PrintVisitor {
     }
 }
 
-impl Visitor for PrintVisitor {
+impl Visitor<'_> for PrintVisitor {
     fn enter_any(&mut self) {
         self.level += 1;
     }
