@@ -6,9 +6,13 @@ macro_rules! define_visitor_methods {
         paste! {
             $(
                 #[allow(unused_variables)]
-                fn [<enter_ $name:snake>](&mut self, node: &mut ast::$name) {}
+                fn [<enter_ $name:snake _mut>](&mut self, node: &mut ast::$name) {}
                 #[allow(unused_variables)]
-                fn [<exit_ $name:snake>](&mut self, node: &mut ast::$name) {}
+                fn [<exit_ $name:snake _mut>](&mut self, node: &mut ast::$name) {}
+                #[allow(unused_variables)]
+                fn [<enter_ $name:snake>](&mut self, node: & ast::$name) {}
+                #[allow(unused_variables)]
+                fn [<exit_ $name:snake>](&mut self, node: & ast::$name) {}
             )*
         }
     };

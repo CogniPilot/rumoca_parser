@@ -15,7 +15,7 @@ struct Args {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
-    let mut def = rumoca_parser::parse_file(&args.model_file);
+    let def = rumoca_parser::parse_file(&args.model_file);
 
     if args.verbose {
         println!("{:#?}", def);

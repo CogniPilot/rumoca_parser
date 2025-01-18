@@ -30,21 +30,21 @@ impl Visitor for PrintVisitor {
         self.level -= 1;
     }
 
-    fn enter_stored_definition(&mut self, _node: &mut ast::StoredDefinition) {
+    fn enter_stored_definition(&mut self, _node: &ast::StoredDefinition) {
         self.print("Stored definition");
     }
 
-    fn enter_class_definition(&mut self, node: &mut ast::ClassDefinition) {
+    fn enter_class_definition(&mut self, node: &ast::ClassDefinition) {
         if let ast::ClassSpecifier::Long { name, .. } = &node.specifier {
             self.print(&format!("class {}", name));
         }
     }
 
-    fn exit_class_definition(&mut self, _node: &mut ast::ClassDefinition) {
+    fn exit_class_definition(&mut self, _node: &ast::ClassDefinition) {
         println!("\n");
     }
 
-    fn enter_expression(&mut self, node: &mut ast::Expression) {
+    fn enter_expression(&mut self, node: &ast::Expression) {
         match node {
             ast::Expression::Binary { op, .. } => {
                 self.print(&format!("{:?}", op));
@@ -80,7 +80,7 @@ impl Visitor for PrintVisitor {
         }
     }
 
-    fn enter_equation(&mut self, node: &mut ast::Equation) {
+    fn enter_equation(&mut self, node: &ast::Equation) {
         match node {
             ast::Equation::Connect { .. } => {
                 self.print("connect");
@@ -96,11 +96,11 @@ impl Visitor for PrintVisitor {
         }
     }
 
-    fn enter_component_declaration(&mut self, node: &mut ast::ComponentDeclaration) {
+    fn enter_component_declaration(&mut self, node: &ast::ComponentDeclaration) {
         self.print(&format!("component: {}", node.declaration.name));
     }
 
-    fn exit_component_reference(&mut self, node: &mut ast::ComponentReference) {
+    fn exit_component_reference(&mut self, node: &ast::ComponentReference) {
         let mut s: String = "".to_string();
         for (index, part) in node.parts.iter().enumerate() {
             if index != 0 || node.local {
