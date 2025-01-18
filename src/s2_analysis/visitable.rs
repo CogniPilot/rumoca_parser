@@ -58,6 +58,7 @@ impl Visitable for ast::ClassSpecifier {
                     part.accept(visitor);
                 }
             }
+            ast::ClassSpecifier::Empty => {}
         }
         visitor.exit_class_specifier(self);
         visitor.exit_any();
@@ -91,6 +92,7 @@ impl Visitable for ast::CompositionPart {
                     eq.accept(visitor);
                 }
             }
+            ast::CompositionPart::Empty => {}
         }
         visitor.exit_composition_part(self);
         visitor.exit_any();
@@ -119,6 +121,7 @@ impl Visitable for ast::Element {
             ast::Element::ExtendsClause { type_specifier } => {
                 type_specifier.accept(visitor);
             }
+            ast::Element::Empty => {}
         }
         visitor.exit_element(self);
         visitor.exit_any();
@@ -269,6 +272,7 @@ impl Visitable for ast::Equation {
                 }
                 description.accept(visitor);
             }
+            ast::Equation::Empty => {}
         }
         visitor.exit_equation(self);
         visitor.exit_any();
@@ -324,6 +328,7 @@ impl Visitable for ast::Statement {
             }
             ast::Statement::Break { .. } => {}
             ast::Statement::Return { .. } => {}
+            ast::Statement::Empty => {}
         }
         visitor.exit_statement(self);
         visitor.exit_any();
@@ -388,6 +393,7 @@ impl Visitable for ast::Expression {
                     arg.accept(visitor);
                 }
             }
+            ast::Expression::Empty => {}
         }
         visitor.exit_expression(self);
         visitor.exit_any();
@@ -446,6 +452,7 @@ impl Visitable for ast::Subscript {
                 expr.accept(visitor);
             }
             ast::Subscript::Colon => {}
+            ast::Subscript::Empty => {}
         }
         visitor.exit_subscript(self);
         visitor.exit_any();
@@ -470,6 +477,7 @@ impl Visitable for ast::Argument {
             }
             ast::Argument::Replaceable => {}
             ast::Argument::Redeclaration => {}
+            ast::Argument::Empty => {}
         }
         visitor.exit_argument(self);
         visitor.exit_any();
@@ -492,6 +500,7 @@ impl Visitable for ast::Modification {
                     modif.accept(visitor);
                 }
             }
+            ast::Modification::Empty => {}
         }
         visitor.exit_modification(self);
         visitor.exit_any();
@@ -507,6 +516,7 @@ impl Visitable for ast::ModExpr {
             ast::ModExpr::Expression { expr } => {
                 expr.accept(visitor);
             }
+            ast::ModExpr::Empty => {}
         }
         visitor.exit_mod_expr(self);
         visitor.exit_any();

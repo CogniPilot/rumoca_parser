@@ -480,9 +480,9 @@ pub TypePrefix: ast::TypePrefix = {
     <variability: Variability?>
     <causality: Causality?> => {
         ast::TypePrefix {
-            connection: connection.unwrap_or(ast::Connection::None),
+            connection: connection.unwrap_or(ast::Connection::Empty),
             variability: variability.unwrap_or(ast::Variability::Continuous),
-            causality: causality.unwrap_or(ast::Causality::None),
+            causality: causality.unwrap_or(ast::Causality::Empty),
         }
     }
 }

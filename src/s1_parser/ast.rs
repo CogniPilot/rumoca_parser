@@ -28,8 +28,10 @@ pub struct ClassDefinition {
     pub specifier: ClassSpecifier,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum ClassSpecifier {
+    #[default]
+    Empty,
     Long {
         name: String,
         description: Vec<String>,
@@ -45,19 +47,10 @@ pub enum ClassSpecifier {
     },
 }
 
-impl Default for ClassSpecifier {
-    fn default() -> Self {
-        ClassSpecifier::Long {
-            name: "".to_string(),
-            description: Vec::new(),
-            composition: Vec::new(),
-            name_end: "".to_string(),
-        }
-    }
-}
-
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum CompositionPart {
+    #[default]
+    Empty,
     ElementList {
         visibility: Visibility,
         elements: Vec<Element>,
@@ -73,8 +66,10 @@ pub enum CompositionPart {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Element {
+    #[default]
+    Empty,
     ImportClause {
         alias: String,
         name: Name,
@@ -93,14 +88,14 @@ pub enum Element {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ComponentDeclaration {
     pub declaration: Declaration,
     pub condition_attribute: Option<Expression>,
     pub description: Description,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ComponentDeclaration1 {
     pub declaration: Declaration,
     pub description: Description,
@@ -112,7 +107,7 @@ pub struct ClassPrefixes {
     pub class_type: ClassType,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ComponentClause {
     pub type_prefix: TypePrefix,
     pub type_specifier: TypeSpecifier,
@@ -120,21 +115,21 @@ pub struct ComponentClause {
     pub components: Vec<ComponentDeclaration>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ComponentClause1 {
     pub type_prefix: TypePrefix,
     pub type_specifier: TypeSpecifier,
     pub component_declaration1: ComponentDeclaration1,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct Declaration {
     pub name: String,
     pub array_subscripts: Option<ArraySubscripts>,
     pub modification: Option<Modification>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct TypeSpecifier {
     pub leading_period: bool,
     pub name: Name,
@@ -143,8 +138,10 @@ pub struct TypeSpecifier {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Equations
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Equation {
+    #[default]
+    Empty,
     Simple {
         lhs: Expression,
         rhs: Expression,
@@ -167,7 +164,7 @@ pub enum Equation {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct IfEquationBlock {
     pub cond: Expression,
     pub eqs: Vec<Equation>,
@@ -176,8 +173,10 @@ pub struct IfEquationBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Statements
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Statement {
+    #[default]
+    Empty,
     Assignment {
         comp: ComponentReference,
         rhs: Expression,
@@ -206,7 +205,7 @@ pub enum Statement {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct IfStatementBlock {
     pub cond: Expression,
     pub stmts: Vec<Statement>,
@@ -215,8 +214,10 @@ pub struct IfStatementBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Expressions
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Expression {
+    #[default]
+    Empty,
     UnsignedInteger(String),
     UnsignedReal(String),
     Boolean(bool),
@@ -249,31 +250,33 @@ pub enum Expression {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct IfExpressionBlock {
     pub cond: Expression,
     pub expr: Expression,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ComponentReference {
     pub local: bool,
     pub parts: Vec<RefPart>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct RefPart {
     pub name: String,
     pub array_subscripts: Option<ArraySubscripts>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ArraySubscripts {
     pub sub: Vec<Subscript>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Subscript {
+    #[default]
+    Empty,
     Colon,
     Expression(Expression),
 }
@@ -281,8 +284,10 @@ pub enum Subscript {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Modification
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Argument {
+    #[default]
+    Empty,
     Modification {
         name: Name,
         each: bool,
@@ -294,8 +299,10 @@ pub enum Argument {
     Redeclaration,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Modification {
+    #[default]
+    Empty,
     Expression {
         expr: ModExpr,
     },
@@ -305,10 +312,14 @@ pub enum Modification {
     },
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum ModExpr {
+    #[default]
+    Empty,
     Break,
-    Expression { expr: Expression },
+    Expression {
+        expr: Expression,
+    },
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -320,14 +331,14 @@ pub struct Description {
     pub annotation: Vec<Argument>,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct TypePrefix {
     pub connection: Connection,
     pub variability: Variability,
     pub causality: Causality,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ForIndex {
     pub ident: String,
     pub in_expr: Option<Expression>,
@@ -342,7 +353,7 @@ pub struct Span {
     pub right: usize,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct ElementFlags {
     pub replaceable: bool,
     pub redeclare: bool,
@@ -351,36 +362,44 @@ pub struct ElementFlags {
     pub outer: bool,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Causality {
-    None,
+    #[default]
+    Empty,
     Input,
     Output,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Variability {
+    #[default]
+    Empty,
     Continuous,
     Discrete,
     Parameter,
     Constant,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Visibility {
+    #[default]
+    Empty,
     Public,
     Protected,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum Connection {
-    None,
+    #[default]
+    Empty,
     Flow,
     Stream,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum UnaryOp {
+    #[default]
+    Empty,
     Paren,
     Not,
     Negative,
@@ -389,8 +408,10 @@ pub enum UnaryOp {
     ElemPositive,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub enum BinaryOp {
+    #[default]
+    Empty,
     Paren,
     Not,
     Add,
@@ -417,6 +438,7 @@ pub enum BinaryOp {
 #[derive(CommonTraits!, Default)]
 pub enum ClassType {
     #[default]
+    Empty,
     Class,
     Model,
     Record,
@@ -433,7 +455,7 @@ pub enum ClassType {
     Operator,
 }
 
-#[derive(CommonTraits!)]
+#[derive(CommonTraits!, Default)]
 pub struct Name {
     pub ident: Vec<String>,
 }

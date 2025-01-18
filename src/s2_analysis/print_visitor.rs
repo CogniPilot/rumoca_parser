@@ -76,6 +76,7 @@ impl Visitor for PrintVisitor {
             ast::Expression::Der { .. } => {
                 self.print("der");
             }
+            ast::Expression::Empty { .. } => {}
         }
     }
 
@@ -91,6 +92,7 @@ impl Visitor for PrintVisitor {
             ast::Equation::For { .. } => {
                 self.print("for");
             }
+            ast::Equation::Empty { .. } => {}
         }
     }
 
