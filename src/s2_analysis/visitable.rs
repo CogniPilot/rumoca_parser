@@ -49,10 +49,8 @@ impl<'a> Visitable<'a> for ast::ClassSpecifier {
                 composition,
                 ..
             } => {
-                if let Some(modifs) = modification {
-                    for modif in modifs.iter() {
-                        (*modif).accept(visitor);
-                    }
+                for modif in modification.iter() {
+                    (*modif).accept(visitor);
                 }
                 for part in composition.iter() {
                     part.accept(visitor);
@@ -169,8 +167,8 @@ impl<'a> Visitable<'a> for ast::ComponentClause {
         visitor.enter_component_clause(self);
         self.type_prefix.accept(visitor);
         self.type_specifier.accept(visitor);
-        if let Some(subs) = self.array_subscripts.as_ref() {
-            subs.accept(visitor);
+        for sub in self.array_subscripts.iter() {
+            sub.accept(visitor);
         }
         for comp in self.components.iter() {
             comp.accept(visitor);
@@ -196,8 +194,8 @@ impl<'a> Visitable<'a> for ast::Declaration {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_declaration(self);
-        if let Some(subs) = self.array_subscripts.as_ref() {
-            subs.accept(visitor);
+        for sub in self.array_subscripts.iter() {
+            sub.accept(visitor);
         }
         if let Some(modif) = self.modification.as_ref() {
             modif.accept(visitor);
@@ -435,22 +433,10 @@ impl<'a> Visitable<'a> for ast::RefPart {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_ref_part(self);
-        if let Some(subs) = self.array_subscripts.as_ref() {
-            subs.accept(visitor);
-        }
-        visitor.exit_ref_part(self);
-        visitor.exit_any();
-    }
-}
-
-impl<'a> Visitable<'a> for ast::ArraySubscripts {
-    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_array_subscripts(self);
-        for sub in self.sub.iter() {
+        for sub in self.array_subscripts.iter() {
             sub.accept(visitor);
         }
-        visitor.exit_array_subscripts(self);
+        visitor.exit_ref_part(self);
         visitor.exit_any();
     }
 }

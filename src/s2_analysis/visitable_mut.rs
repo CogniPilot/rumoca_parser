@@ -49,10 +49,8 @@ impl VisitableMut for ast::ClassSpecifier {
                 composition,
                 ..
             } => {
-                if let Some(modifs) = modification {
-                    for modif in modifs.iter_mut() {
-                        (*modif).accept_mut(visitor);
-                    }
+                for modif in modification.iter_mut() {
+                    (*modif).accept_mut(visitor);
                 }
                 for part in composition.iter_mut() {
                     part.accept_mut(visitor);
@@ -169,8 +167,8 @@ impl VisitableMut for ast::ComponentClause {
         visitor.enter_component_clause_mut(self);
         self.type_prefix.accept_mut(visitor);
         self.type_specifier.accept_mut(visitor);
-        if let Some(subs) = self.array_subscripts.as_mut() {
-            subs.accept_mut(visitor);
+        for sub in self.array_subscripts.iter_mut() {
+            sub.accept_mut(visitor);
         }
         for comp in self.components.iter_mut() {
             comp.accept_mut(visitor);
@@ -196,8 +194,8 @@ impl VisitableMut for ast::Declaration {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_declaration_mut(self);
-        if let Some(subs) = self.array_subscripts.as_mut() {
-            subs.accept_mut(visitor);
+        for sub in self.array_subscripts.iter_mut() {
+            sub.accept_mut(visitor);
         }
         if let Some(modif) = self.modification.as_mut() {
             modif.accept_mut(visitor);
@@ -435,22 +433,10 @@ impl VisitableMut for ast::RefPart {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_ref_part_mut(self);
-        if let Some(subs) = self.array_subscripts.as_mut() {
-            subs.accept_mut(visitor);
-        }
-        visitor.exit_ref_part_mut(self);
-        visitor.exit_any();
-    }
-}
-
-impl VisitableMut for ast::ArraySubscripts {
-    fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
-        visitor.enter_array_subscripts_mut(self);
-        for sub in self.sub.iter_mut() {
+        for sub in self.array_subscripts.iter_mut() {
             sub.accept_mut(visitor);
         }
-        visitor.exit_array_subscripts_mut(self);
+        visitor.exit_ref_part_mut(self);
         visitor.exit_any();
     }
 }

@@ -255,7 +255,7 @@ pub LongClassSpecifier: ast::ClassSpecifier = {
     "end" <name_end: IDENT> => {
         ast::ClassSpecifier::Extends {
             name,
-            modification,
+            modification: modification.unwrap_or(Vec::new()),
             description,
             composition,
             name_end,
@@ -465,7 +465,7 @@ pub ComponentClause: ast::ComponentClause = {
         ast::ComponentClause {
             type_prefix,
             type_specifier,
-            array_subscripts,
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
             components,
         }
     }
@@ -533,7 +533,7 @@ pub Declaration: ast::Declaration = {
     <modification:Modification?> => {
         ast::Declaration {
             name,
-            array_subscripts,
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
             modification,
         }
     }
@@ -1202,7 +1202,7 @@ pub RefPart: ast::RefPart = {
     <name:IDENT> <array_subscripts:ArraySubscripts?> => {
         ast::RefPart {
             name,
-            array_subscripts,
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
         }
     }
 }
@@ -1250,12 +1250,8 @@ pub FunctionCallArguments: Vec<ast::Expression> = {
 
 //✅ array-subscripts :
 //✅    "[" subscript { "," subscript } "]"
-pub ArraySubscripts: ast::ArraySubscripts = {
-    "[" <sub: SeparatedList<Subscript, ",">> "]" => {
-        ast::ArraySubscripts {
-            sub,
-        }
-    },
+pub ArraySubscripts: Vec<ast::Subscript> = {
+    "[" <sub: SeparatedList<Subscript, ",">> "]" => sub,
 }
 //✅ subscript :
 //✅    ":" | expression

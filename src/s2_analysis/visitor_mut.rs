@@ -38,7 +38,6 @@ pub trait VisitorMut {
         IfExpressionBlock,
         ComponentReference,
         RefPart,
-        ArraySubscripts,
         Subscript,
         Argument,
         Modification,

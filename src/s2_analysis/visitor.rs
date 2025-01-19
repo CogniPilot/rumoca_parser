@@ -38,7 +38,6 @@ pub trait Visitor<'a> {
         IfExpressionBlock,
         ComponentReference,
         RefPart,
-        ArraySubscripts,
         Subscript,
         Argument,
         Modification,

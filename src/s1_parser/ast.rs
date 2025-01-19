@@ -40,7 +40,7 @@ pub enum ClassSpecifier {
     },
     Extends {
         name: String,
-        modification: Option<Vec<Argument>>,
+        modification: Vec<Argument>,
         description: Vec<String>,
         composition: Vec<CompositionPart>,
         name_end: String,
@@ -111,7 +111,7 @@ pub struct ClassPrefixes {
 pub struct ComponentClause {
     pub type_prefix: TypePrefix,
     pub type_specifier: TypeSpecifier,
-    pub array_subscripts: Option<ArraySubscripts>,
+    pub array_subscripts: Vec<Subscript>,
     pub components: Vec<ComponentDeclaration>,
 }
 
@@ -125,7 +125,7 @@ pub struct ComponentClause1 {
 #[derive(CommonTraits!, Default)]
 pub struct Declaration {
     pub name: String,
-    pub array_subscripts: Option<ArraySubscripts>,
+    pub array_subscripts: Vec<Subscript>,
     pub modification: Option<Modification>,
 }
 
@@ -265,12 +265,7 @@ pub struct ComponentReference {
 #[derive(CommonTraits!, Default)]
 pub struct RefPart {
     pub name: String,
-    pub array_subscripts: Option<ArraySubscripts>,
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct ArraySubscripts {
-    pub sub: Vec<Subscript>,
+    pub array_subscripts: Vec<Subscript>,
 }
 
 #[derive(CommonTraits!, Default)]
