@@ -358,7 +358,7 @@ impl VisitableMut for ast::Expression {
         visitor.enter_any();
         visitor.enter_expression_mut(self);
         match self {
-            ast::Expression::Ref { comp } => {
+            ast::Expression::Ref(comp) => {
                 comp.accept_mut(visitor);
             }
             ast::Expression::Unary { rhs, .. } => {

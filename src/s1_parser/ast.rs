@@ -222,9 +222,7 @@ pub enum Expression {
     UnsignedReal(String),
     Boolean(bool),
     //String(String),
-    Ref {
-        comp: ComponentReference,
-    },
+    Ref(ComponentReference),
     Unary {
         op: UnaryOp,
         rhs: Box<Expression>,

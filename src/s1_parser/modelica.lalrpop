@@ -1146,7 +1146,7 @@ SimpleExpression: ast::Expression = {
         ast::Expression::Boolean(val)
     },
     <comp:ComponentReference> => {
-        ast::Expression::Ref{comp}
+        ast::Expression::Ref(comp)
     },
     <comp:ComponentReference> <args:FunctionCallArguments> => {
         ast::Expression::FunctionCall {

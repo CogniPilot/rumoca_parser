@@ -358,7 +358,7 @@ impl<'a> Visitable<'a> for ast::Expression {
         visitor.enter_any();
         visitor.enter_expression(self);
         match self {
-            ast::Expression::Ref { comp } => {
+            ast::Expression::Ref(comp) => {
                 comp.accept(visitor);
             }
             ast::Expression::Unary { rhs, .. } => {
