@@ -2,7 +2,7 @@
 name = "rumoca_parser"
 authors = ["James Goppert", "Benjamin Perseghetti"]
 description = "A Modelica parser leveraging LALRPOP"
-version = "0.9.1"
+version = "0.10.0"
 edition = "2021"
 license = "Apache-2.0"
 

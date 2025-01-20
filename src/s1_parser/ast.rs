@@ -34,14 +34,14 @@ pub enum ClassSpecifier {
     Empty,
     Long {
         name: String,
-        description: Vec<String>,
+        description: DescriptionString,
         composition: Vec<CompositionPart>,
         name_end: String,
     },
     Extends {
         name: String,
         modification: Vec<Argument>,
-        description: Vec<String>,
+        description: DescriptionString,
         composition: Vec<CompositionPart>,
         name_end: String,
     },
@@ -83,9 +83,7 @@ pub enum Element {
         flags: ElementFlags,
         def: ClassDefinition,
     },
-    ExtendsClause {
-        type_specifier: TypeSpecifier,
-    },
+    ExtendsClause(TypeSpecifier),
 }
 
 #[derive(CommonTraits!, Default)]
@@ -131,7 +129,7 @@ pub struct Declaration {
 
 #[derive(CommonTraits!, Default)]
 pub struct TypeSpecifier {
-    pub leading_period: bool,
+    pub local: bool,
     pub name: Name,
 }
 
@@ -197,12 +195,8 @@ pub enum Statement {
         stmts: Vec<Statement>,
         description: Description,
     },
-    Break {
-        description: Description,
-    },
-    Return {
-        description: Description,
-    },
+    Break(Description),
+    Return(Description),
 }
 
 #[derive(CommonTraits!, Default)]
@@ -236,14 +230,9 @@ pub enum Expression {
         if_blocks: Vec<IfExpressionBlock>,
         else_expr: Box<Option<Expression>>,
     },
-    ArrayArguments {
-        args: Vec<Expression>,
-    },
+    ArrayArguments(Vec<Expression>),
     FunctionCall {
         comp: ComponentReference,
-        args: Vec<Expression>,
-    },
-    Der {
         args: Vec<Expression>,
     },
 }
@@ -296,9 +285,7 @@ pub enum Argument {
 pub enum Modification {
     #[default]
     Empty,
-    Expression {
-        expr: ModExpr,
-    },
+    Expression(ModExpr),
     Class {
         args: Vec<Argument>,
         expr: Option<ModExpr>,
@@ -310,9 +297,7 @@ pub enum ModExpr {
     #[default]
     Empty,
     Break,
-    Expression {
-        expr: Expression,
-    },
+    Expression(Expression),
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -448,10 +433,8 @@ pub enum ClassType {
     Operator,
 }
 
-#[derive(CommonTraits!, Default)]
-pub struct Name {
-    pub ident: Vec<String>,
-}
+pub type Name = Vec<String>;
+pub type DescriptionString = Vec<String>;
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Unit Testing

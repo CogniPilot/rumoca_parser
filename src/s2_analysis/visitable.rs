@@ -116,7 +116,7 @@ impl<'a> Visitable<'a> for ast::Element {
                 name.accept(visitor);
                 description.accept(visitor);
             }
-            ast::Element::ExtendsClause { type_specifier } => {
+            ast::Element::ExtendsClause(type_specifier) => {
                 type_specifier.accept(visitor);
             }
             ast::Element::Empty => {}
@@ -380,15 +380,10 @@ impl<'a> Visitable<'a> for ast::Expression {
                     expr.accept(visitor);
                 }
             }
-            ast::Expression::Der { args } => {
-                for arg in args.iter() {
-                    arg.accept(visitor);
-                }
-            }
             ast::Expression::UnsignedInteger(_) => {}
             ast::Expression::UnsignedReal(_) => {}
             ast::Expression::Boolean(_) => {}
-            ast::Expression::ArrayArguments { args } => {
+            ast::Expression::ArrayArguments(args) => {
                 for arg in args.iter() {
                     arg.accept(visitor);
                 }
@@ -487,7 +482,7 @@ impl<'a> Visitable<'a> for ast::Modification {
         visitor.enter_any();
         visitor.enter_modification(self);
         match self {
-            ast::Modification::Expression { expr } => {
+            ast::Modification::Expression(expr) => {
                 expr.accept(visitor);
             }
             ast::Modification::Class { args, expr } => {
@@ -511,7 +506,7 @@ impl<'a> Visitable<'a> for ast::ModExpr {
         visitor.enter_mod_expr(self);
         match self {
             ast::ModExpr::Break => {}
-            ast::ModExpr::Expression { expr } => {
+            ast::ModExpr::Expression(expr) => {
                 expr.accept(visitor);
             }
             ast::ModExpr::Empty => {}

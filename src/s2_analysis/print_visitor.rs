@@ -73,9 +73,6 @@ impl Visitor<'_> for PrintVisitor {
             ast::Expression::FunctionCall { .. } => {
                 self.print("function call");
             }
-            ast::Expression::Der { .. } => {
-                self.print("der");
-            }
             ast::Expression::Empty { .. } => {}
         }
     }

@@ -116,7 +116,7 @@ impl VisitableMut for ast::Element {
                 name.accept_mut(visitor);
                 description.accept_mut(visitor);
             }
-            ast::Element::ExtendsClause { type_specifier } => {
+            ast::Element::ExtendsClause(type_specifier) => {
                 type_specifier.accept_mut(visitor);
             }
             ast::Element::Empty => {}
@@ -380,15 +380,10 @@ impl VisitableMut for ast::Expression {
                     expr.accept_mut(visitor);
                 }
             }
-            ast::Expression::Der { args } => {
-                for arg in args.iter_mut() {
-                    arg.accept_mut(visitor);
-                }
-            }
             ast::Expression::UnsignedInteger(_) => {}
             ast::Expression::UnsignedReal(_) => {}
             ast::Expression::Boolean(_) => {}
-            ast::Expression::ArrayArguments { args } => {
+            ast::Expression::ArrayArguments(args) => {
                 for arg in args.iter_mut() {
                     arg.accept_mut(visitor);
                 }
@@ -487,7 +482,7 @@ impl VisitableMut for ast::Modification {
         visitor.enter_any();
         visitor.enter_modification_mut(self);
         match self {
-            ast::Modification::Expression { expr } => {
+            ast::Modification::Expression(expr) => {
                 expr.accept_mut(visitor);
             }
             ast::Modification::Class { args, expr } => {
@@ -511,7 +506,7 @@ impl VisitableMut for ast::ModExpr {
         visitor.enter_mod_expr_mut(self);
         match self {
             ast::ModExpr::Break => {}
-            ast::ModExpr::Expression { expr } => {
+            ast::ModExpr::Expression(expr) => {
                 expr.accept_mut(visitor);
             }
             ast::ModExpr::Empty => {}

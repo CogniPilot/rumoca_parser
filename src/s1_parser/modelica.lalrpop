@@ -237,13 +237,13 @@ pub IDENT: String = {
 //✅    | extends IDENT [ class-modification ] description-string composition end IDENT
 pub LongClassSpecifier: ast::ClassSpecifier = {
     <name: IDENT>
-    <description: DescriptionString?>
+    <description: DescriptionString>
     <composition: Composition>
     "end"
     <name_end: IDENT> => {
         ast::ClassSpecifier::Long {
             name,
-            description: description.unwrap_or(Vec::new()),
+            description,
             composition,
             name_end,
         }
@@ -433,9 +433,7 @@ pub ImportClause : ast::Element = {
 pub ExtendsClause: ast::Element = {
     "extends"
     <type_specifier: TypeSpecifier> => {
-        ast::Element::ExtendsClause {
-            type_specifier,
-        }
+        ast::Element::ExtendsClause(type_specifier)
     }
 }
 
@@ -552,18 +550,14 @@ pub Modification: ast::Modification = {
         args,
         expr,
     },
-    "=" <expr: ModExpr> => ast::Modification::Expression {
-        expr,
-    },
+    "=" <expr: ModExpr> => ast::Modification::Expression(expr),
 }
 
 //✅ modification-expression :
 //✅    expression
 //✅    | break
 pub ModExpr: ast::ModExpr = {
-    <expr: Expression> => ast::ModExpr::Expression {
-        expr
-    },
+    <expr: Expression> => ast::ModExpr::Expression(expr),
     "break" => ast::ModExpr::Break {}
 }
 
@@ -713,8 +707,8 @@ pub Statement: ast::Statement = {
     <stmt: IfStatement> => stmt,
     <stmt: ForStatement> => stmt,
     <stmt: WhileStatement> =>  stmt,
-    "break" <description: Description> => ast::Statement::Break { description },
-    "return" <description: Description> => ast::Statement::Return { description },
+    "break" <description: Description> => ast::Statement::Break(description),
+    "return" <description: Description> => ast::Statement::Return(description),
 }
 
 //✅ if-equation :
@@ -1002,6 +996,12 @@ MulOperator : ast::BinaryOp = {
     "./" => ast::BinaryOp::ElemDiv,
 }
 
+FuncKeyword: String = {
+    <"der"> => String::from("der"),
+    // <"initial"> => String::from("initial"),
+    // <"pure"> => String::from("pure"),
+};
+
 SimpleExpression: ast::Expression = {
 //✅ simple-expression :
 //✅    logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
@@ -1072,30 +1072,9 @@ SimpleExpression: ast::Expression = {
 //✅ term :
 //✅    factor { mul-operator factor }
     #[precedence(level="4")] #[assoc(side="left")]
-    <lhs:SimpleExpression> "*" <rhs:SimpleExpression> => {
+    <lhs:SimpleExpression> <op: MulOperator> <rhs:SimpleExpression> => {
         ast::Expression::Binary {
-            op: ast::BinaryOp::Mul,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> ".*" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::ElemMul,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "/" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::Div,
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-        }
-    },
-    <lhs:SimpleExpression> "./" <rhs:SimpleExpression> => {
-        ast::Expression::Binary {
-            op: ast::BinaryOp::ElemDiv,
+            op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         }
@@ -1128,13 +1107,11 @@ SimpleExpression: ast::Expression = {
     "(" <rhs:ParenthesisExpression> ")" => {
         ast::Expression::Unary {
             op: ast::UnaryOp::Paren,
-            rhs: Box::new(rhs)
+            rhs: Box::new(rhs),
         }
     },
     "{" <args:SeparatedList<Expression, ",">> "}" => {
-        ast::Expression::ArrayArguments {
-            args
-        }
+        ast::Expression::ArrayArguments (args)
     },
     <val:"UNSIGNED-INTEGER"> => {
         ast::Expression::UnsignedInteger(val)
@@ -1148,15 +1125,23 @@ SimpleExpression: ast::Expression = {
     <comp:ComponentReference> => {
         ast::Expression::Ref(comp)
     },
+    #[precedence(level="1")]
     <comp:ComponentReference> <args:FunctionCallArguments> => {
         ast::Expression::FunctionCall {
             comp,
-            args
+            args,
         }
     },
-    "der" <args:FunctionCallArguments> => {
-        ast::Expression::Der {
-            args
+    <func: FuncKeyword> <args:FunctionCallArguments> => {
+        ast::Expression::FunctionCall {
+            comp: ast::ComponentReference{
+                local: false,
+                parts: vec![ast::RefPart{
+                    name: func,
+                    array_subscripts: Vec::new()
+                }]
+            },
+            args,
         }
     },
 }
@@ -1168,25 +1153,23 @@ SimpleExpression: ast::Expression = {
 //✅ type-specifier :
 //✅    ["."] name
 pub TypeSpecifier: ast::TypeSpecifier = {
-    <leading_period: "."?> <name: Name> => {
+    <local: "."?> <name: Name> => {
         ast::TypeSpecifier{
-            leading_period: leading_period.is_some(),
+            local: local.is_some(),
             name,
         }
     },
 }
+
 //✅ name :
 //✅    IDENT { "." IDENT }
 pub Name: ast::Name = {
     <first:IDENT> <remaining: ("." <IDENT>)*> => {
         let mut v = vec![first];
         v.extend(remaining);
-        ast::Name {
-            ident: v
-        }
+        v
     }
 }
-
 
 //✅ component-reference :
 //✅    [ "." ] IDENT [ array-subscripts ] { "." IDENT [ array-subscripts ] }
@@ -1263,11 +1246,11 @@ pub Subscript: ast::Subscript = {
 //✅ description :
 //✅    description-string [ annotation-clause ]
 pub Description: ast::Description = {
-    <strings: DescriptionString?>
+    <strings: DescriptionString>
     <annotation: AnnotationClause?>
     => {
         ast::Description {
-            strings: strings.unwrap_or(Vec::new()),
+            strings,
             annotation: annotation.unwrap_or(Vec::new()),
         }
     },
@@ -1275,10 +1258,14 @@ pub Description: ast::Description = {
 
 //✅ description-string :
 //✅    [ STRING { "+" STRING } ]
-// Note: LALRPOP doesn't like empty expressions, so effectively
-//       removing outer [ ], and at least one string is required.
-//       Other expressions will need to treat as option.
 pub DescriptionString: Vec<String> = {
+    <s:DescriptionStringPart?> => {
+        s.unwrap_or(Vec::new())
+    }
+}
+// Note: LALRPOP doesn't like empty expressions here, so
+// adding level of indirection with DescriptionStringPart
+DescriptionStringPart: Vec<String> = {
     <first:"STRING"> <remaining: ("+" <"STRING">)*> => {
         let mut v = vec![first];
         v.extend(remaining);
