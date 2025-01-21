@@ -28,6 +28,7 @@ impl<'a> Visitable<'a> for ast::ClassDefinition {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_definition(self);
+        self.prefixes.accept(visitor);
         self.specifier.accept(visitor);
         visitor.exit_class_definition(self);
         visitor.exit_any();

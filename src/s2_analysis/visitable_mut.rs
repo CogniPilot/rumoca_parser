@@ -28,6 +28,7 @@ impl VisitableMut for ast::ClassDefinition {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
         visitor.enter_any();
         visitor.enter_class_definition_mut(self);
+        self.prefixes.accept_mut(visitor);
         self.specifier.accept_mut(visitor);
         visitor.exit_class_definition_mut(self);
         visitor.exit_any();
