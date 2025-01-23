@@ -1,4 +1,5 @@
 use crate::s1_parser::ast;
+use crate::s1_parser::ast::NodeRef;
 use crate::s2_analysis::visitor::Visitor;
 
 pub struct PrintVisitor {
@@ -22,11 +23,11 @@ impl Default for PrintVisitor {
 }
 
 impl Visitor<'_> for PrintVisitor {
-    fn enter_any(&mut self) {
+    fn enter_any(&mut self, _node: NodeRef) {
         self.level += 1;
     }
 
-    fn exit_any(&mut self) {
+    fn exit_any(&mut self, _node: NodeRef) {
         self.level -= 1;
     }
 

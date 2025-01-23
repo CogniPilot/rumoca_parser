@@ -1,5 +1,6 @@
 use super::visitor_mut::VisitorMut;
 use crate::s1_parser::ast;
+use crate::s1_parser::ast::NodeRef;
 use paste::paste;
 
 pub trait VisitableMut {
@@ -11,13 +12,13 @@ pub trait VisitableMut {
 
 impl VisitableMut for ast::StoredDefinition {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::StoredDefinition(self));
         visitor.enter_stored_definition_mut(self);
         for class in self.classes.iter_mut() {
             class.accept_mut(visitor);
         }
         visitor.exit_stored_definition_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::StoredDefinition(self));
     }
 }
 
@@ -26,18 +27,18 @@ impl VisitableMut for ast::StoredDefinition {
 
 impl VisitableMut for ast::ClassDefinition {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ClassDefinition(self));
         visitor.enter_class_definition_mut(self);
         self.prefixes.accept_mut(visitor);
         self.specifier.accept_mut(visitor);
         visitor.exit_class_definition_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ClassDefinition(self));
     }
 }
 
 impl VisitableMut for ast::ClassSpecifier {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ClassSpecifier(self));
         visitor.enter_class_specifier_mut(self);
         match self {
             ast::ClassSpecifier::Long { composition, .. } => {
@@ -60,13 +61,13 @@ impl VisitableMut for ast::ClassSpecifier {
             ast::ClassSpecifier::Empty => {}
         }
         visitor.exit_class_specifier_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ClassSpecifier(self));
     }
 }
 
 impl VisitableMut for ast::CompositionPart {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::CompositionPart(self));
         visitor.enter_composition_part_mut(self);
         match self {
             ast::CompositionPart::ElementList {
@@ -94,13 +95,13 @@ impl VisitableMut for ast::CompositionPart {
             ast::CompositionPart::Empty => {}
         }
         visitor.exit_composition_part_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::CompositionPart(self));
     }
 }
 
 impl VisitableMut for ast::Element {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Element(self));
         visitor.enter_element_mut(self);
         match self {
             ast::Element::ComponentClause { flags, clause } => {
@@ -123,13 +124,13 @@ impl VisitableMut for ast::Element {
             ast::Element::Empty => {}
         }
         visitor.exit_element_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Element(self));
     }
 }
 
 impl VisitableMut for ast::ComponentDeclaration {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ComponentDeclaration(self));
         visitor.enter_component_declaration_mut(self);
         self.declaration.accept_mut(visitor);
         if let Some(expr) = self.condition_attribute.as_mut() {
@@ -137,34 +138,34 @@ impl VisitableMut for ast::ComponentDeclaration {
         }
         self.description.accept_mut(visitor);
         visitor.exit_component_declaration_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ComponentDeclaration(self));
     }
 }
 
 impl VisitableMut for ast::ComponentDeclaration1 {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ComponentDeclaration1(self));
         visitor.enter_component_declaration1_mut(self);
         self.declaration.accept_mut(visitor);
         self.description.accept_mut(visitor);
         visitor.exit_component_declaration1_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ComponentDeclaration1(self));
     }
 }
 
 impl VisitableMut for ast::ClassPrefixes {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ClassPrefixes(self));
         visitor.enter_class_prefixes_mut(self);
         self.class_type.accept_mut(visitor);
         visitor.exit_class_prefixes_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ClassPrefixes(self));
     }
 }
 
 impl VisitableMut for ast::ComponentClause {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ComponentClause(self));
         visitor.enter_component_clause_mut(self);
         self.type_prefix.accept_mut(visitor);
         self.type_specifier.accept_mut(visitor);
@@ -175,25 +176,25 @@ impl VisitableMut for ast::ComponentClause {
             comp.accept_mut(visitor);
         }
         visitor.exit_component_clause_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ComponentClause(self));
     }
 }
 
 impl VisitableMut for ast::ComponentClause1 {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ComponentClause1(self));
         visitor.enter_component_clause1_mut(self);
         self.type_prefix.accept_mut(visitor);
         self.type_specifier.accept_mut(visitor);
         self.component_declaration1.accept_mut(visitor);
         visitor.exit_component_clause1_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ComponentClause1(self));
     }
 }
 
 impl VisitableMut for ast::Declaration {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Declaration(self));
         visitor.enter_declaration_mut(self);
         for sub in self.array_subscripts.iter_mut() {
             sub.accept_mut(visitor);
@@ -202,17 +203,17 @@ impl VisitableMut for ast::Declaration {
             modif.accept_mut(visitor);
         }
         visitor.exit_declaration_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Declaration(self));
     }
 }
 
 impl VisitableMut for ast::TypeSpecifier {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::TypeSpecifier(self));
         visitor.enter_type_specifier_mut(self);
         self.name.accept_mut(visitor);
         visitor.exit_type_specifier_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::TypeSpecifier(self));
     }
 }
 
@@ -221,7 +222,7 @@ impl VisitableMut for ast::TypeSpecifier {
 
 impl VisitableMut for ast::Equation {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Equation(self));
         visitor.enter_equation_mut(self);
         match self {
             ast::Equation::Simple {
@@ -274,20 +275,20 @@ impl VisitableMut for ast::Equation {
             ast::Equation::Empty => {}
         }
         visitor.exit_equation_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Equation(self));
     }
 }
 
 impl VisitableMut for ast::IfEquationBlock {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::IfEquationBlock(self));
         visitor.enter_if_equation_block_mut(self);
         self.cond.accept_mut(visitor);
         for eq in self.eqs.iter_mut() {
             eq.accept_mut(visitor);
         }
         visitor.exit_if_equation_block_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::IfEquationBlock(self));
     }
 }
 
@@ -296,7 +297,7 @@ impl VisitableMut for ast::IfEquationBlock {
 
 impl VisitableMut for ast::Statement {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Statement(self));
         visitor.enter_statement_mut(self);
         match self {
             ast::Statement::If {
@@ -334,20 +335,20 @@ impl VisitableMut for ast::Statement {
             ast::Statement::Empty => {}
         }
         visitor.exit_statement_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Statement(self));
     }
 }
 
 impl VisitableMut for ast::IfStatementBlock {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::IfStatementBlock(self));
         visitor.enter_if_statement_block_mut(self);
         self.cond.accept_mut(visitor);
         for stmt in self.stmts.iter_mut() {
             stmt.accept_mut(visitor);
         }
         visitor.exit_if_statement_block_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::IfStatementBlock(self));
     }
 }
 
@@ -356,7 +357,7 @@ impl VisitableMut for ast::IfStatementBlock {
 
 impl VisitableMut for ast::Expression {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Expression(self));
         visitor.enter_expression_mut(self);
         match self {
             ast::Expression::Ref(comp) => {
@@ -398,48 +399,48 @@ impl VisitableMut for ast::Expression {
             ast::Expression::Empty => {}
         }
         visitor.exit_expression_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Expression(self));
     }
 }
 
 impl VisitableMut for ast::IfExpressionBlock {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::IfExpressionBlock(self));
         visitor.enter_if_expression_block_mut(self);
         self.cond.accept_mut(visitor);
         self.expr.accept_mut(visitor);
         visitor.exit_if_expression_block_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::IfExpressionBlock(self));
     }
 }
 
 impl VisitableMut for ast::ComponentReference {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ComponentReference(self));
         visitor.enter_component_reference_mut(self);
         for part in self.parts.iter_mut() {
             part.accept_mut(visitor);
         }
         visitor.exit_component_reference_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ComponentReference(self));
     }
 }
 
 impl VisitableMut for ast::RefPart {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::RefPart(self));
         visitor.enter_ref_part_mut(self);
         for sub in self.array_subscripts.iter_mut() {
             sub.accept_mut(visitor);
         }
         visitor.exit_ref_part_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::RefPart(self));
     }
 }
 
 impl VisitableMut for ast::Subscript {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Subscript(self));
         visitor.enter_subscript_mut(self);
         match self {
             ast::Subscript::Expression(expr) => {
@@ -449,7 +450,7 @@ impl VisitableMut for ast::Subscript {
             ast::Subscript::Empty => {}
         }
         visitor.exit_subscript_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Subscript(self));
     }
 }
 
@@ -458,7 +459,7 @@ impl VisitableMut for ast::Subscript {
 
 impl VisitableMut for ast::Argument {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Argument(self));
         visitor.enter_argument_mut(self);
         match self {
             ast::Argument::Modification {
@@ -474,13 +475,13 @@ impl VisitableMut for ast::Argument {
             ast::Argument::Empty => {}
         }
         visitor.exit_argument_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Argument(self));
     }
 }
 
 impl VisitableMut for ast::Modification {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Modification(self));
         visitor.enter_modification_mut(self);
         match self {
             ast::Modification::Expression(expr) => {
@@ -497,13 +498,13 @@ impl VisitableMut for ast::Modification {
             ast::Modification::Empty => {}
         }
         visitor.exit_modification_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Modification(self));
     }
 }
 
 impl VisitableMut for ast::ModExpr {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ModExpr(self));
         visitor.enter_mod_expr_mut(self);
         match self {
             ast::ModExpr::Break => {}
@@ -513,7 +514,7 @@ impl VisitableMut for ast::ModExpr {
             ast::ModExpr::Empty => {}
         }
         visitor.exit_mod_expr_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ModExpr(self));
     }
 }
 
@@ -522,37 +523,37 @@ impl VisitableMut for ast::ModExpr {
 
 impl VisitableMut for ast::Description {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::Description(self));
         visitor.enter_description_mut(self);
         for arg in self.annotation.iter_mut() {
             arg.accept_mut(visitor);
         }
         visitor.exit_description_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::Description(self));
     }
 }
 
 impl VisitableMut for ast::TypePrefix {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::TypePrefix(self));
         visitor.enter_type_prefix_mut(self);
         self.connection.accept_mut(visitor);
         self.variability.accept_mut(visitor);
         self.causality.accept_mut(visitor);
         visitor.exit_type_prefix_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::TypePrefix(self));
     }
 }
 
 impl VisitableMut for ast::ForIndex {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-        visitor.enter_any();
+        visitor.enter_any(NodeRef::ForIndex(self));
         visitor.enter_for_index_mut(self);
         if let Some(expr) = self.in_expr.as_mut() {
             expr.accept_mut(visitor);
         }
         visitor.exit_for_index_mut(self);
-        visitor.exit_any();
+        visitor.exit_any(NodeRef::ForIndex(self));
     }
 }
 
@@ -565,10 +566,10 @@ macro_rules! accept_mut_terminal_node {
             $(
                 impl VisitableMut for ast::$name {
                     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
-                        visitor.enter_any();
+                        visitor.enter_any(NodeRef::$name(self));
                         visitor.[<enter_ $name:snake _mut>](self);
                         visitor.[<exit_ $name:snake _mut>](self);
-                        visitor.exit_any();
+                        visitor.exit_any(NodeRef::$name(self));
                     }
                 }
             )*

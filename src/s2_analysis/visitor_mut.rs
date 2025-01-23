@@ -1,4 +1,5 @@
 use crate::s1_parser::ast;
+use crate::s1_parser::ast::NodeRef;
 use paste::paste;
 
 macro_rules! define_visitor_mut_methods {
@@ -14,8 +15,8 @@ macro_rules! define_visitor_mut_methods {
 
 #[allow(unused_variables)]
 pub trait VisitorMut {
-    fn enter_any(&mut self) {}
-    fn exit_any(&mut self) {}
+    fn enter_any(&mut self, node: NodeRef) {}
+    fn exit_any(&mut self, node: NodeRef) {}
 
     define_visitor_mut_methods!(
         StoredDefinition,

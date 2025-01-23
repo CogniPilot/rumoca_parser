@@ -55,6 +55,7 @@ pub enum NodeRef<'a> {
     CompositionPart(&'a CompositionPart),
     Element(&'a Element),
     ComponentDeclaration(&'a ComponentDeclaration),
+    ComponentDeclaration1(&'a ComponentDeclaration1),
     ClassPrefixes(&'a ClassPrefixes),
     ComponentClause(&'a ComponentClause),
     ComponentClause1(&'a ComponentClause1),
@@ -84,6 +85,7 @@ pub enum NodeRef<'a> {
     UnaryOp(&'a UnaryOp),
     BinaryOp(&'a BinaryOp),
     ClassType(&'a ClassType),
+    Name(&'a Name),
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

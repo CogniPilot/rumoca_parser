@@ -14,8 +14,8 @@ macro_rules! define_visitor_methods {
 
 #[allow(unused_variables)]
 pub trait Visitor<'a> {
-    fn enter_any(&mut self) {}
-    fn exit_any(&mut self) {}
+    fn enter_any(&mut self, node: ast::NodeRef<'a>) {}
+    fn exit_any(&mut self, node: ast::NodeRef<'a>) {}
 
     define_visitor_methods!(
         StoredDefinition,
