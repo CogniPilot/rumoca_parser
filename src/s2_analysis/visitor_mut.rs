@@ -1,5 +1,5 @@
+use super::ast_node::NodeRef;
 use crate::s1_parser::ast;
-use crate::s1_parser::ast::NodeRef;
 use paste::paste;
 
 macro_rules! define_visitor_mut_methods {

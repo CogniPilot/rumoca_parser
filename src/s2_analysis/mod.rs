@@ -1,3 +1,4 @@
+pub mod ast_node;
 pub mod parser_helper;
 pub mod print_visitor;
 pub mod visitable;
@@ -5,6 +6,7 @@ pub mod visitable_mut;
 pub mod visitor;
 pub mod visitor_mut;
 
+pub use ast_node::{Node, NodeMutRef, NodeRef};
 pub use parser_helper::parse_file;
 pub use print_visitor::PrintVisitor;
 pub use visitable::Visitable;

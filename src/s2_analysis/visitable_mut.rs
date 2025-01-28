@@ -1,10 +1,124 @@
+use super::ast_node::{Node, NodeMutRef, NodeRef};
 use super::visitor_mut::VisitorMut;
 use crate::s1_parser::ast;
-use crate::s1_parser::ast::NodeRef;
 use paste::paste;
 
 pub trait VisitableMut {
     fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V);
+}
+
+macro_rules! visit_match_node_mut_ref {
+    ($self:ident, $visitor:ident, $($variant:ident),*) => {
+        match $self {
+            $(
+                NodeMutRef::$variant(node) => node.accept_mut($visitor),
+            )*
+            _ => {}
+        }
+    };
+}
+
+impl VisitableMut for NodeMutRef<'_> {
+    fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
+        visit_match_node_mut_ref!(
+            self,
+            visitor,
+            StoredDefinition,
+            ClassDefinition,
+            ClassSpecifier,
+            CompositionPart,
+            Element,
+            ComponentDeclaration,
+            ComponentDeclaration1,
+            ClassPrefixes,
+            ComponentClause,
+            ComponentClause1,
+            Declaration,
+            TypeSpecifier,
+            Equation,
+            IfEquationBlock,
+            Statement,
+            IfStatementBlock,
+            Expression,
+            IfExpressionBlock,
+            ComponentReference,
+            RefPart,
+            Subscript,
+            Argument,
+            Modification,
+            ModExpr,
+            Description,
+            TypePrefix,
+            ForIndex,
+            Span,
+            ElementFlags,
+            Causality,
+            Variability,
+            Visibility,
+            Connection,
+            UnaryOp,
+            BinaryOp,
+            ClassType,
+            Name
+        );
+    }
+}
+
+macro_rules! visit_mut_match_node {
+    ($self:ident, $visitor:ident, $($variant:ident),*) => {
+        match $self {
+            $(
+                Node::$variant(node) => node.accept_mut($visitor),
+            )*
+            _ => {}
+        }
+    };
+}
+
+impl VisitableMut for Node {
+    fn accept_mut<V: VisitorMut + ?Sized>(&mut self, visitor: &mut V) {
+        visit_mut_match_node!(
+            self,
+            visitor,
+            StoredDefinition,
+            ClassDefinition,
+            ClassSpecifier,
+            CompositionPart,
+            Element,
+            ComponentDeclaration,
+            ComponentDeclaration1,
+            ClassPrefixes,
+            ComponentClause,
+            ComponentClause1,
+            Declaration,
+            TypeSpecifier,
+            Equation,
+            IfEquationBlock,
+            Statement,
+            IfStatementBlock,
+            Expression,
+            IfExpressionBlock,
+            ComponentReference,
+            RefPart,
+            Subscript,
+            Argument,
+            Modification,
+            ModExpr,
+            Description,
+            TypePrefix,
+            ForIndex,
+            Span,
+            ElementFlags,
+            Causality,
+            Variability,
+            Visibility,
+            Connection,
+            UnaryOp,
+            BinaryOp,
+            ClassType,
+            Name
+        );
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

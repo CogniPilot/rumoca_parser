@@ -1,11 +1,125 @@
+use super::super::s1_parser::ast;
+use super::ast_node::{Node, NodeRef};
 use super::visitor::Visitor;
-use crate::s1_parser::ast;
-use crate::s1_parser::ast::NodeRef;
 
 use paste::paste;
 
 pub trait Visitable<'a> {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V);
+}
+
+macro_rules! visit_match_node_ref {
+    ($self:ident, $visitor:ident, $($variant:ident),*) => {
+        match $self {
+            $(
+                NodeRef::$variant(node) => node.accept($visitor),
+            )*
+            _ => {}
+        }
+    };
+}
+
+impl<'a> Visitable<'a> for NodeRef<'a> {
+    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+        visit_match_node_ref!(
+            self,
+            visitor,
+            StoredDefinition,
+            ClassDefinition,
+            ClassSpecifier,
+            CompositionPart,
+            Element,
+            ComponentDeclaration,
+            ComponentDeclaration1,
+            ClassPrefixes,
+            ComponentClause,
+            ComponentClause1,
+            Declaration,
+            TypeSpecifier,
+            Equation,
+            IfEquationBlock,
+            Statement,
+            IfStatementBlock,
+            Expression,
+            IfExpressionBlock,
+            ComponentReference,
+            RefPart,
+            Subscript,
+            Argument,
+            Modification,
+            ModExpr,
+            Description,
+            TypePrefix,
+            ForIndex,
+            Span,
+            ElementFlags,
+            Causality,
+            Variability,
+            Visibility,
+            Connection,
+            UnaryOp,
+            BinaryOp,
+            ClassType,
+            Name
+        );
+    }
+}
+
+macro_rules! visit_match_node {
+    ($self:ident, $visitor:ident, $($variant:ident),*) => {
+        match $self {
+            $(
+                Node::$variant(node) => node.accept($visitor),
+            )*
+            _ => {}
+        }
+    };
+}
+
+impl<'a> Visitable<'a> for Node {
+    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+        visit_match_node!(
+            self,
+            visitor,
+            StoredDefinition,
+            ClassDefinition,
+            ClassSpecifier,
+            CompositionPart,
+            Element,
+            ComponentDeclaration,
+            ComponentDeclaration1,
+            ClassPrefixes,
+            ComponentClause,
+            ComponentClause1,
+            Declaration,
+            TypeSpecifier,
+            Equation,
+            IfEquationBlock,
+            Statement,
+            IfStatementBlock,
+            Expression,
+            IfExpressionBlock,
+            ComponentReference,
+            RefPart,
+            Subscript,
+            Argument,
+            Modification,
+            ModExpr,
+            Description,
+            TypePrefix,
+            ForIndex,
+            Span,
+            ElementFlags,
+            Causality,
+            Variability,
+            Visibility,
+            Connection,
+            UnaryOp,
+            BinaryOp,
+            ClassType,
+            Name
+        );
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
