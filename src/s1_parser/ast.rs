@@ -109,7 +109,7 @@ pub struct ClassPrefixes {
 pub struct ComponentClause {
     pub type_prefix: TypePrefix,
     pub type_specifier: TypeSpecifier,
-    pub array_subscripts: Vec<Subscript>,
+    pub array_subscripts: ArraySubscripts,
     pub components: Vec<ComponentDeclaration>,
 }
 
@@ -123,7 +123,7 @@ pub struct ComponentClause1 {
 #[derive(CommonTraits!, Default)]
 pub struct Declaration {
     pub name: String,
-    pub array_subscripts: Vec<Subscript>,
+    pub array_subscripts: ArraySubscripts,
     pub modification: Option<Modification>,
 }
 
@@ -252,7 +252,12 @@ pub struct ComponentReference {
 #[derive(CommonTraits!, Default)]
 pub struct RefPart {
     pub name: String,
-    pub array_subscripts: Vec<Subscript>,
+    pub array_subscripts: ArraySubscripts,
+}
+
+#[derive(CommonTraits!, Default)]
+pub struct ArraySubscripts {
+    pub subscripts: Vec<Subscript>,
 }
 
 #[derive(CommonTraits!, Default)]

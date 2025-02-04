@@ -41,6 +41,7 @@ pub trait Visitor<'a> {
         ComponentReference,
         RefPart,
         Subscript,
+        ArraySubscripts,
         Argument,
         Modification,
         ModExpr,

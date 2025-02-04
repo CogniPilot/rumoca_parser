@@ -44,6 +44,7 @@ impl<'a> Visitable<'a> for NodeRef<'a> {
             IfExpressionBlock,
             ComponentReference,
             RefPart,
+            ArraySubscripts,
             Subscript,
             Argument,
             Modification,
@@ -284,9 +285,7 @@ impl<'a> Visitable<'a> for ast::ComponentClause {
         visitor.enter_component_clause(self);
         self.type_prefix.accept(visitor);
         self.type_specifier.accept(visitor);
-        for sub in self.array_subscripts.iter() {
-            sub.accept(visitor);
-        }
+        self.array_subscripts.accept(visitor);
         for comp in self.components.iter() {
             comp.accept(visitor);
         }
@@ -311,9 +310,7 @@ impl<'a> Visitable<'a> for ast::Declaration {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
         visitor.enter_any(NodeRef::Declaration(self));
         visitor.enter_declaration(self);
-        for sub in self.array_subscripts.iter() {
-            sub.accept(visitor);
-        }
+        self.array_subscripts.accept(visitor);
         if let Some(modif) = self.modification.as_ref() {
             modif.accept(visitor);
         }
@@ -545,11 +542,21 @@ impl<'a> Visitable<'a> for ast::RefPart {
     fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
         visitor.enter_any(NodeRef::RefPart(self));
         visitor.enter_ref_part(self);
-        for sub in self.array_subscripts.iter() {
-            sub.accept(visitor);
-        }
+        self.array_subscripts.accept(visitor);
         visitor.exit_ref_part(self);
         visitor.exit_any(NodeRef::RefPart(self));
+    }
+}
+
+impl<'a> Visitable<'a> for ast::ArraySubscripts {
+    fn accept<V: Visitor<'a> + ?Sized>(&'a self, visitor: &mut V) {
+        visitor.enter_any(NodeRef::ArraySubscripts(self));
+        visitor.enter_array_subscripts(self);
+        for sub in self.subscripts.iter() {
+            sub.accept(visitor);
+        }
+        visitor.exit_array_subscripts(self);
+        visitor.exit_any(NodeRef::ArraySubscripts(self));
     }
 }
 

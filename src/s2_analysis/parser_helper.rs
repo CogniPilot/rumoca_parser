@@ -12,11 +12,13 @@ use md5;
 use std::process;
 
 pub fn parse_file(filename: &str) -> ast::StoredDefinition {
+    let file_txt = std::fs::read_to_string(filename).expect("failed to read file");
+    parse(filename, &file_txt)
+}
+
+pub fn parse(filename: &str, file_txt: &str) -> ast::StoredDefinition {
     let mut files = SimpleFiles::new();
-    let file_id = files.add(
-        filename,
-        std::fs::read_to_string(filename).expect("failed to read file"),
-    );
+    let file_id = files.add(filename, file_txt);
     let file = files.get(file_id).expect("failed to get file id");
     let file_txt = file.source();
     let lexer = Lexer::new(file_txt);

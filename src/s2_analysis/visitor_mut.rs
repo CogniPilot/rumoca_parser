@@ -40,6 +40,7 @@ pub trait VisitorMut {
         ComponentReference,
         RefPart,
         Subscript,
+        ArraySubscripts,
         Argument,
         Modification,
         ModExpr,

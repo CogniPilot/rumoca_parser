@@ -463,7 +463,7 @@ pub ComponentClause: ast::ComponentClause = {
         ast::ComponentClause {
             type_prefix,
             type_specifier,
-            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
+            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
             components,
         }
     }
@@ -531,7 +531,7 @@ pub Declaration: ast::Declaration = {
     <modification:Modification?> => {
         ast::Declaration {
             name,
-            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
+            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
             modification,
         }
     }
@@ -1138,7 +1138,7 @@ SimpleExpression: ast::Expression = {
                 local: false,
                 parts: vec![ast::RefPart{
                     name: func,
-                    array_subscripts: Vec::new()
+                    array_subscripts: ast::ArraySubscripts::default(),
                 }]
             },
             args,
@@ -1185,7 +1185,7 @@ pub RefPart: ast::RefPart = {
     <name:IDENT> <array_subscripts:ArraySubscripts?> => {
         ast::RefPart {
             name,
-            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
+            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
         }
     }
 }
@@ -1233,8 +1233,10 @@ pub FunctionCallArguments: Vec<ast::Expression> = {
 
 //✅ array-subscripts :
 //✅    "[" subscript { "," subscript } "]"
-pub ArraySubscripts: Vec<ast::Subscript> = {
-    "[" <sub: SeparatedList<Subscript, ",">> "]" => sub,
+pub ArraySubscripts: ast::ArraySubscripts = {
+    "[" <subscripts: SeparatedList<Subscript, ",">> "]" => {
+        ast::ArraySubscripts{ subscripts }
+    }
 }
 //✅ subscript :
 //✅    ":" | expression
