@@ -2,8 +2,12 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=src/s0_lexer/lexer.rs");
+    println!("cargo:rerun-if-changed=src/s0_lexer/mod.rs");
+    println!("cargo:rerun-if-changed=src/s0_lexer/token.rs");
     println!("cargo:rerun-if-changed=src/s1_parser/modelica.lalrpop");
     println!("cargo:rerun-if-changed=src/s1_parser/ast.rs");
+    println!("cargo:rerun-if-changed=src/s1_parser/mod.rs");
+    println!("cargo:rerun-if-changed=src/s1_parser/parser_helper.rs");
     lalrpop::process_root().unwrap();
 
     // Attempt to retrieve the current Git version
