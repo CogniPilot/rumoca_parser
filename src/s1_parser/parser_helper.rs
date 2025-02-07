@@ -4,6 +4,7 @@ use crate::s0_lexer::tokens::LexicalError;
 use crate::s1_parser::ast;
 use crate::s1_parser::modelica::StoredDefinitionParser;
 
+use crate::s1_parser::ast::ParserContext;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
@@ -23,7 +24,8 @@ pub fn parse(filename: &str, file_txt: &str) -> ast::StoredDefinition {
     let file_txt = file.source();
     let lexer = Lexer::new(file_txt);
     let parser = StoredDefinitionParser::new();
-    let result = parser.parse(lexer);
+    let mut context = ParserContext::default();
+    let result = parser.parse(&mut context, lexer);
     if result.is_err() {
         let err = result.as_ref().expect_err("error");
         let writer = StandardStream::stderr(ColorChoice::Always);
