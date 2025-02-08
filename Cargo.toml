@@ -13,6 +13,7 @@ rerun_except = "1.0.0"
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 codespan-reporting = "0.11.1"
+indexmap = { version = "2.7.1", features = ["serde"] }
 lalrpop-util = "0.22.0"
 logos = "0.15.0"
 macro_rules_attribute = "0.2.0"

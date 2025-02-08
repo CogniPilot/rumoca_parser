@@ -5,6 +5,21 @@ derive_alias! {
     #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)];
 }
 
+macro_rules! impl_debug_for_enum {
+    ($enum_name:ident { $($variant:ident),* $(,)? }) => {
+        impl fmt::Debug for $enum_name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    $(
+                        Self::$variant(v) => write!(f, "{:#?}", v),
+                    )*
+                    _ => Ok(()), // Default case for ignored variants
+                }
+            }
+        }
+    };
+}
+
 #[derive(CommonTraits!, Default)]
 pub struct ParserContext {
     id_count: usize,
@@ -57,14 +72,44 @@ pub struct StoredDefinition {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Class Level Nodes
 
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ClassFlags {
+    pub partial: bool,
+    pub encapsulated: bool,
+    pub replaceable: bool,
+    pub redeclare: bool,
+    pub is_final: bool,
+    pub inner: bool,
+    pub outer: bool,
+}
+
+impl fmt::Debug for ClassFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let flags = [
+            ("partial", self.partial),
+            ("encapsulated", self.encapsulated),
+            ("replaceable", self.replaceable),
+            ("redeclare", self.redeclare),
+            ("is_final", self.is_final),
+            ("inner", self.inner),
+            ("outer", self.outer),
+        ]
+        .iter()
+        .filter_map(|&(flag, is_set)| if is_set { Some(flag) } else { None })
+        .collect::<Vec<_>>(); // Collect names of true flags into a vector
+        write!(f, "[{}]", flags.join(", "))
+    }
+}
+
 #[derive(CommonTraits!, Default)]
 pub struct ClassDefinition {
     pub node_data: NodeData,
-    pub flags: ElementFlags,
-    pub is_encapsulated: bool,
-    pub is_final: bool,
-    pub prefixes: ClassPrefixes,
-    pub specifier: ClassSpecifier,
+    pub name: String,
+    pub class_type: ClassType,
+    pub flags: ClassFlags,
+    pub modification: Vec<Argument>,
+    pub description: DescriptionString,
+    pub composition: Vec<CompositionPart>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -94,7 +139,7 @@ pub struct ClassSpecifierExtends {
     pub name_end: String,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum CompositionPart {
     #[default]
     Empty,
@@ -102,6 +147,12 @@ pub enum CompositionPart {
     ElementList(ElementList),
     EquationSection(EquationSection),
 }
+
+impl_debug_for_enum!(CompositionPart {
+    AlgorithmSection,
+    ElementList,
+    EquationSection
+});
 
 #[derive(CommonTraits!, Default)]
 pub struct ElementList {
@@ -124,7 +175,7 @@ pub struct AlgorithmSection {
     pub statements: Vec<Statement>,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Element {
     #[default]
     Empty,
@@ -134,12 +185,19 @@ pub enum Element {
     ImportClause(ImportClause),
 }
 
+impl_debug_for_enum!(Element {
+    ClassDefinition,
+    ComponentClause,
+    ExtendsClause,
+    ImportClause,
+});
+
 #[derive(CommonTraits!, Default)]
 pub struct ImportClause {
     pub node_data: NodeData,
     pub alias: String,
     pub name: Name,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -151,16 +209,11 @@ pub struct ExtendsClause {
 #[derive(CommonTraits!, Default)]
 pub struct ComponentDeclaration {
     pub node_data: NodeData,
-    pub declaration: Declaration,
+    pub name: String,
+    pub array_subscripts: Vec<Subscript>,
+    pub modification: Option<Modification>,
     pub condition_attribute: Option<Expression>,
-    pub description: Description,
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct ComponentDeclaration1 {
-    pub node_data: NodeData,
-    pub declaration: Declaration,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -172,40 +225,43 @@ pub struct ClassPrefixes {
 #[derive(CommonTraits!, Default)]
 pub struct ComponentClause {
     pub node_data: NodeData,
+    pub type_specifier: TypeSpecifier,
     pub flags: ElementFlags,
-    pub type_prefix: TypePrefix,
-    pub type_specifier: TypeSpecifier,
-    pub array_subscripts: ArraySubscripts,
+    pub connection: Connection,
+    pub variability: Variability,
+    pub causality: Causality,
+    pub array_subscripts: Vec<Subscript>,
     pub components: Vec<ComponentDeclaration>,
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct ComponentClause1 {
-    pub node_data: NodeData,
-    pub type_prefix: TypePrefix,
-    pub type_specifier: TypeSpecifier,
-    pub component_declaration1: ComponentDeclaration1,
 }
 
 #[derive(CommonTraits!, Default)]
 pub struct Declaration {
     pub node_data: NodeData,
     pub name: String,
-    pub array_subscripts: ArraySubscripts,
+    pub array_subscripts: Vec<Subscript>,
     pub modification: Option<Modification>,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TypeSpecifier {
-    pub node_data: NodeData,
     pub local: bool,
     pub name: Name,
+}
+
+impl fmt::Debug for TypeSpecifier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.local {
+            write!(f, ".{:#?}", self.name)
+        } else {
+            write!(f, "{:#?}", self.name)
+        }
+    }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Equations
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Equation {
     #[default]
     Empty,
@@ -215,12 +271,19 @@ pub enum Equation {
     Simple(EquationSimple),
 }
 
+impl_debug_for_enum!(Equation {
+    Connect,
+    For,
+    If,
+    Simple,
+});
+
 #[derive(CommonTraits!, Default)]
 pub struct EquationSimple {
     pub node_data: NodeData,
     pub lhs: Expression,
     pub rhs: Expression,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -228,7 +291,7 @@ pub struct EquationIf {
     pub node_data: NodeData,
     pub if_blocks: Vec<EquationIfBlock>,
     pub else_eqs: Vec<Equation>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -236,7 +299,7 @@ pub struct EquationFor {
     pub node_data: NodeData,
     pub indices: Vec<ForIndex>,
     pub eqs: Vec<Equation>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -244,7 +307,7 @@ pub struct EquationConnect {
     pub node_data: NodeData,
     pub lhs: ComponentReference,
     pub rhs: ComponentReference,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -257,7 +320,7 @@ pub struct EquationIfBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Statements
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Statement {
     #[default]
     Empty,
@@ -269,12 +332,21 @@ pub enum Statement {
     While(StatementWhile),
 }
 
+impl_debug_for_enum!(Statement {
+    Assignment,
+    Break,
+    For,
+    If,
+    Return,
+    While,
+});
+
 #[derive(CommonTraits!, Default)]
 pub struct StatementAssignment {
     pub node_data: NodeData,
     pub comp: ComponentReference,
     pub rhs: Expression,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -282,7 +354,7 @@ pub struct StatementIf {
     pub node_data: NodeData,
     pub if_blocks: Vec<StatementIfBlock>,
     pub else_stmts: Vec<Statement>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -290,7 +362,7 @@ pub struct StatementFor {
     pub node_data: NodeData,
     pub indices: Vec<ForIndex>,
     pub stmts: Vec<Statement>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -298,19 +370,19 @@ pub struct StatementWhile {
     pub node_data: NodeData,
     pub cond: Expression,
     pub stmts: Vec<Statement>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
 pub struct StatementBreak {
     pub node_data: NodeData,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
 pub struct StatementReturn {
     pub node_data: NodeData,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -323,11 +395,11 @@ pub struct StatementIfBlock {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Expressions
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Expression {
     #[default]
     Empty,
-    ArrayArguments(ArrayArguments),
+    Array(ExpressionArray),
     Binary(ExpressionBinary),
     Boolean(ExpressionBoolean),
     FunctionCall(FunctionCall),
@@ -338,8 +410,20 @@ pub enum Expression {
     UnsignedReal(ExpressionUnsignedReal),
 }
 
+impl_debug_for_enum!(Expression {
+    Array,
+    Binary,
+    Boolean,
+    FunctionCall,
+    If,
+    Ref,
+    Unary,
+    UnsignedInteger,
+    UnsignedReal
+});
+
 #[derive(CommonTraits!, Default)]
-pub struct ArrayArguments {
+pub struct ExpressionArray {
     pub node_data: NodeData,
     pub args: Vec<Expression>,
 }
@@ -370,7 +454,7 @@ pub struct ExpressionIf {
 pub struct FunctionCall {
     pub node_data: NodeData,
     pub comp: ComponentReference,
-    pub args: ArrayArguments,
+    pub args: Vec<Expression>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -398,33 +482,57 @@ pub struct ExpressionBoolean {
     pub val: bool,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ComponentReference {
     pub node_data: NodeData,
     pub local: bool,
     pub parts: Vec<RefPart>,
 }
 
-#[derive(CommonTraits!, Default)]
+impl fmt::Debug for ComponentReference {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let parts = self
+            .parts
+            .iter()
+            .map(|part| format!("{:#?}", part))
+            .collect::<Vec<_>>()
+            .join(".");
+        write!(
+            f,
+            "ComponentReference({}{}: {:#?})",
+            if self.local { "." } else { "" },
+            parts,
+            self.node_data,
+        )
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct RefPart {
     pub node_data: NodeData,
     pub name: String,
-    pub array_subscripts: ArraySubscripts,
+    pub array_subscripts: Vec<Subscript>,
 }
 
-#[derive(CommonTraits!, Default)]
-pub struct ArraySubscripts {
-    pub node_data: NodeData,
-    pub subscripts: Vec<Subscript>,
+impl fmt::Debug for RefPart {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.array_subscripts.is_empty() {
+            write!(f, "{:#?}", self.name)
+        } else {
+            write!(f, "{:#?}{:?}", self.name, self.array_subscripts)
+        }
+    }
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Subscript {
     #[default]
     Empty,
     Range(SubscriptRange),
     Expression(Expression),
 }
+
+impl_debug_for_enum!(Subscript { Range, Expression });
 
 #[derive(CommonTraits!, Default)]
 pub struct SubscriptRange {
@@ -434,7 +542,7 @@ pub struct SubscriptRange {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Modification
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Argument {
     #[default]
     Empty,
@@ -443,6 +551,12 @@ pub enum Argument {
     Replaceable(ArgumentReplaceable),
 }
 
+impl_debug_for_enum!(Argument {
+    Modification,
+    Redeclaration,
+    Replaceable
+});
+
 #[derive(CommonTraits!, Default)]
 pub struct ArgumentModification {
     pub node_data: NodeData,
@@ -450,7 +564,7 @@ pub struct ArgumentModification {
     pub each: bool,
     pub is_final: bool,
     pub modification: Option<Modification>,
-    pub description: Description,
+    pub description: Option<Description>,
 }
 
 #[derive(CommonTraits!, Default)]
@@ -463,13 +577,15 @@ pub struct ArgumentReplaceable {
     pub node_data: NodeData,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum Modification {
     #[default]
     Empty,
     Class(ModificationClass),
     Expression(ModExpr),
 }
+
+impl_debug_for_enum!(Modification { Class, Expression });
 
 #[derive(CommonTraits!, Default)]
 pub struct ModificationClass {
@@ -478,13 +594,15 @@ pub struct ModificationClass {
     pub expr: Option<ModExpr>,
 }
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ModExpr {
     #[default]
     Empty,
     Break(ModExprBreak),
     Expression(Expression),
 }
+
+impl_debug_for_enum!(ModExpr { Break, Expression });
 
 #[derive(CommonTraits!, Default)]
 pub struct ModExprBreak {
@@ -503,7 +621,6 @@ pub struct Description {
 
 #[derive(CommonTraits!, Default)]
 pub struct TypePrefix {
-    pub node_data: NodeData,
     pub connection: Connection,
     pub variability: Variability,
     pub causality: Causality,
@@ -519,13 +636,29 @@ pub struct ForIndex {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Simple Terminals
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct ElementFlags {
     pub replaceable: bool,
     pub redeclare: bool,
-    pub final_: bool,
+    pub is_final: bool,
     pub inner: bool,
     pub outer: bool,
+}
+
+impl fmt::Debug for ElementFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let flags = [
+            ("replaceable", self.replaceable),
+            ("redeclare", self.redeclare),
+            ("is_final", self.is_final),
+            ("inner", self.inner),
+            ("outer", self.outer),
+        ]
+        .iter()
+        .filter_map(|&(flag, is_set)| if is_set { Some(flag) } else { None })
+        .collect::<Vec<_>>(); // Collect names of true flags into a vector
+        write!(f, "[{}]", flags.join(", "))
+    }
 }
 
 #[derive(CommonTraits!, Default)]
@@ -621,8 +754,18 @@ pub enum ClassType {
     Type,
 }
 
-pub type Name = Vec<String>;
 pub type DescriptionString = Vec<String>;
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct Name {
+    pub parts: Vec<String>,
+}
+
+impl fmt::Debug for Name {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.parts.join("."))
+    }
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Unit Testing

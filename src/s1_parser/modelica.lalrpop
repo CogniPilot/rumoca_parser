@@ -163,7 +163,7 @@ pub StoredDefinition: ast::StoredDefinition = {
 
 ClassDefinitionWithFinal: ast::ClassDefinition = {
     <is_final: "final"?> <mut class: ClassDefinition> => {
-        class.is_final = is_final.is_some();
+        class.flags.is_final = is_final.is_some();
         class
     }
 }
@@ -175,17 +175,27 @@ ClassDefinitionWithFinal: ast::ClassDefinition = {
 //✅ class-definition :
 //✅    [ encapsulated ] class-prefixes class-specifier
 pub ClassDefinition: ast::ClassDefinition = {
-    <left: @L> <is_encapsulated: "encapsulated"?>
+    <left: @L> <encapsulated: "encapsulated"?>
     <prefixes: ClassPrefixes>
     <specifier: ClassSpecifier> <right: @R> => {
         let id = context.new_id();
+        let (name, modification, description, composition) = match specifier {
+            ast::ClassSpecifier::Long(spec) => (spec.name, Vec::new(), spec.description, spec.composition),
+            ast::ClassSpecifier::Extends(spec) => (spec.name, spec.modification, spec.description, spec.composition),
+            ast::ClassSpecifier::Empty => panic!("Empty ClassSpecifier"),
+        };
         ast::ClassDefinition {
             node_data: NodeData::new(id, left, right),
-            flags: ast::ElementFlags::default(),
-            is_final: false,
-            is_encapsulated: is_encapsulated.is_some(),
-            prefixes,
-            specifier,
+            name,
+            class_type: prefixes.class_type,
+            flags: ast::ClassFlags {
+                encapsulated: encapsulated.is_some(),
+                partial: prefixes.is_partial,
+                ..Default::default()
+            },
+            modification,
+            composition,
+            description,
         }
     }
 }
@@ -264,7 +274,7 @@ pub ClassSpecifierExtends: ast::ClassSpecifierExtends = {
     <left: @L> "extends" <name: IDENT>
     <modification: ModificationClass?>
     <description: DescriptionString>
-    <composition: CompositionPart*>
+    <composition: Composition>
     "end" <name_end: IDENT> <right: @R> => {
         let id = context.new_id();
         ast::ClassSpecifierExtends {
@@ -370,13 +380,13 @@ pub ElementList: Vec<ast::Element> = {
 //🟥        [ constraining-clause description ])
 pub ElementFlags : ast::ElementFlags = {
     <redeclare:"redeclare"?>
-    <final_:"final"?>
+    <is_final:"final"?>
     <inner:"inner"?>
     <outer:"outer"?>
     <replaceable:"replaceable"?> => {
         ast::ElementFlags {
             redeclare: redeclare.is_some(),
-            final_: final_.is_some(),
+            is_final: is_final.is_some(),
             inner: inner.is_some(),
             outer: outer.is_some(),
             replaceable: replaceable.is_some(),
@@ -402,7 +412,11 @@ pub ElementComponentClause : ast::ComponentClause = {
 pub ElementClassDefinition : ast::ClassDefinition = {
     <left: @L> <flags: ElementFlags> <def: ClassDefinition> <right: @R>  => {
         let mut res = def;
-        res.flags = flags;
+        res.flags.redeclare = flags.redeclare;
+        res.flags.is_final = flags.is_final;
+        res.flags.inner = flags.inner;
+        res.flags.outer = flags.outer;
+        res.flags.replaceable = flags.replaceable;
         res.node_data.span = (left, right);
         res
     },
@@ -498,10 +512,12 @@ pub ComponentClause: ast::ComponentClause = {
         let id = context.new_id();
         ast::ComponentClause {
             node_data: NodeData::new(id, left, right),
-            flags: ast::ElementFlags::default(),
-            type_prefix,
             type_specifier,
-            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
+            flags: ast::ElementFlags::default(),
+            connection: type_prefix.connection,
+            variability: type_prefix.variability,
+            causality: type_prefix.causality, 
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
             components,
         }
     }
@@ -517,9 +533,8 @@ pub TypePrefix: ast::TypePrefix = {
     <causality: Causality?> <right: @R> => {
         let id = context.new_id();
         ast::TypePrefix {
-            node_data: NodeData::new(id, left, right),
             connection: connection.unwrap_or(ast::Connection::Empty),
-            variability: variability.unwrap_or(ast::Variability::Continuous),
+            variability: variability.unwrap_or(ast::Variability::Empty),
             causality: causality.unwrap_or(ast::Causality::Empty),
         }
     }
@@ -554,7 +569,9 @@ pub ComponentDeclaration: ast::ComponentDeclaration = {
         let id = context.new_id();
         ast::ComponentDeclaration{
             node_data: NodeData::new(id, left, right),
-            declaration,
+            name: declaration.name,
+            array_subscripts: declaration.array_subscripts,
+            modification: declaration.modification,
             condition_attribute,
             description,
         }
@@ -575,7 +592,7 @@ pub Declaration: ast::Declaration = {
         ast::Declaration {
             node_data: NodeData::new(id, left, right),
             name,
-            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
             modification,
         }
     }
@@ -662,29 +679,36 @@ pub Argument: ast::Argument = {
 
 //✅ component-clause1 :
 //✅    type-prefix type-specifier component-declaration1
-pub ComponentClause1: ast::ComponentClause1 = {
+pub ComponentClause1: ast::ComponentClause = {
     <left: @L> <type_prefix: TypePrefix>
     <type_specifier: TypeSpecifier>
     <component_declaration1: ComponentDeclaration1> <right: @R> => {
         let id = context.new_id();
-        ast::ComponentClause1 {
+        ast::ComponentClause {
             node_data: NodeData::new(id, left, right),
-            type_prefix,
             type_specifier,
-            component_declaration1,
+            flags: ast::ElementFlags::default(),
+            connection: type_prefix.connection,
+            variability: type_prefix.variability,
+            causality: type_prefix.causality, 
+            array_subscripts: Vec::new(),
+            components: vec![component_declaration1],
         }
     }
 }
 
 //✅ component-declaration1 :
 //✅    declaration description
-pub ComponentDeclaration1: ast::ComponentDeclaration1 = {
+pub ComponentDeclaration1: ast::ComponentDeclaration = {
     <left: @L> <declaration: Declaration>
     <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::ComponentDeclaration1 {
+        ast::ComponentDeclaration {
             node_data: NodeData::new(id, left, right),
-            declaration,
+            name: declaration.name,
+            array_subscripts: declaration.array_subscripts,
+            modification: declaration.modification,
+            condition_attribute: None,
             description,
         }
     }
@@ -989,7 +1013,7 @@ pub StatementWhile: ast::StatementWhile = {
             node_data: NodeData::new(id, left, right),
             cond,
             stmts,
-            description: ast::Description::default(),
+            description: None,
         }
     }
 }
@@ -1262,7 +1286,7 @@ ExpressionSimple: ast::Expression = {
     },
     <left: @L> "{" <args:SeparatedList<Expression, ",">> "}" <right: @R> => {
         let id = context.new_id();
-        ast::Expression::ArrayArguments(ast::ArrayArguments {
+        ast::Expression::Array(ast::ExpressionArray {
             node_data: NodeData::new(id, left, right),
             args
         })
@@ -1310,7 +1334,7 @@ ExpressionSimple: ast::Expression = {
                 parts: vec![ast::RefPart{
                     node_data: NodeData::new(context.new_id(), left, right),
                     name: func,
-                    array_subscripts: ast::ArraySubscripts::default(),
+                    array_subscripts: Vec::new(),
                 }]
             },
             args,
@@ -1328,7 +1352,6 @@ pub TypeSpecifier: ast::TypeSpecifier = {
     <left: @L> <local: "."?> <name: Name> <right: @R> => {
         let id = context.new_id();
         ast::TypeSpecifier{
-            node_data: NodeData::new(id, left, right),
             local: local.is_some(),
             name,
         }
@@ -1341,7 +1364,9 @@ pub Name: ast::Name = {
     <first:IDENT> <remaining: ("." <IDENT>)*> => {
         let mut v = vec![first];
         v.extend(remaining);
-        v
+        ast::Name {
+            parts: v
+        }
     }
 }
 
@@ -1363,7 +1388,7 @@ pub RefPart: ast::RefPart = {
         ast::RefPart {
             node_data: NodeData::new(id, left, right),
             name,
-            array_subscripts: array_subscripts.unwrap_or(ast::ArraySubscripts::default()),
+            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
         }
     }
 }
@@ -1374,13 +1399,9 @@ pub RefPart: ast::RefPart = {
 
 //✅ function-call-args :
 //✅    "(" [ function-arguments ] ")"
-pub FunctionCallArguments: ast::ArrayArguments = {
+pub FunctionCallArguments: Vec<ast::Expression> = {
     <left: @L> "(" <args:SeparatedList<Expression, ",">> ")" <right: @R> => {
-        let id = context.new_id();
-        ast::ArrayArguments {
-            node_data: NodeData::new(id, left, right),
-            args,
-        }
+        args
     }
 }
 
@@ -1417,13 +1438,9 @@ pub FunctionCallArguments: ast::ArrayArguments = {
 
 //✅ array-subscripts :
 //✅    "[" subscript { "," subscript } "]"
-pub ArraySubscripts: ast::ArraySubscripts = {
-    <left: @L> "[" <subscripts: SeparatedList<Subscript, ",">> "]" <right: @R> => {
-        let id = context.new_id();
-        ast::ArraySubscripts{
-            node_data: NodeData::new(id, left, right),
-            subscripts
-        }
+pub ArraySubscripts: Vec<ast::Subscript> = {
+    "[" <subscripts: SeparatedList<Subscript, ",">> "]" => {
+        subscripts
     }
 }
 //✅ subscript :
@@ -1444,15 +1461,19 @@ pub SubscriptRange: ast::SubscriptRange = {
 
 //✅ description :
 //✅    description-string [ annotation-clause ]
-pub Description: ast::Description = {
+pub Description: Option<ast::Description> = {
     <left: @L> <strings: DescriptionString>
     <annotation: AnnotationClause?> <right: @R>
     => {
-        let id = context.new_id();
-        ast::Description {
-            node_data: NodeData::new(id, left, right),
-            strings,
-            annotation: annotation.unwrap_or(Vec::new()),
+        if left == right {
+            None
+        } else {
+            let id = context.new_id();
+            Some(ast::Description {
+                node_data: NodeData::new(id, left, right),
+                strings,
+                annotation: annotation.unwrap_or(Vec::new()),
+            })
         }
     },
 }
