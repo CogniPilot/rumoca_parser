@@ -1,5 +1,7 @@
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 derive_alias! {
     #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)];
@@ -53,7 +55,7 @@ impl NodeData {
 
 impl fmt::Debug for NodeData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(id: {:?},  span: {:?})", self.id, self.span)
+        write!(f, "NodeData {{id: {:?}, span: {:?}}}", self.id, self.span)
     }
 }
 
@@ -62,11 +64,11 @@ impl fmt::Debug for NodeData {
 #[derive(CommonTraits!, Default)]
 pub struct StoredDefinition {
     pub node_data: NodeData,
-    pub classes: Vec<ClassDefinition>,
     pub within: Option<Name>,
     pub model_md5: String,
     pub rumoca_parser_version: String,
     pub rumoca_parser_git: String,
+    pub classes: IndexMap<String, ClassDefinition>,
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -109,7 +111,18 @@ pub struct ClassDefinition {
     pub flags: ClassFlags,
     pub modification: Vec<Argument>,
     pub description: DescriptionString,
-    pub composition: Vec<CompositionPart>,
+    //pub composition: Vec<CompositionPart>,
+    pub components: IndexMap<String, ComponentDeclaration>,
+    pub equations: Vec<Equation>,
+    pub algorithms: Vec<Vec<Statement>>,
+    pub initial_equations: Vec<Equation>,
+    pub initial_algorithms: Vec<Vec<Statement>>,
+}
+
+impl Hash for ClassDefinition {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.node_data.id.hash(state);
+    }
 }
 
 #[derive(CommonTraits!, Default)]
@@ -399,15 +412,15 @@ pub struct StatementIfBlock {
 pub enum Expression {
     #[default]
     Empty,
-    Array(ExpressionArray),
-    Binary(ExpressionBinary),
-    Boolean(ExpressionBoolean),
+    Array(Array),
+    Binary(Binary),
+    Boolean(Boolean),
     FunctionCall(FunctionCall),
     If(ExpressionIf),
     Ref(ComponentReference),
-    Unary(ExpressionUnary),
-    UnsignedInteger(ExpressionUnsignedInteger),
-    UnsignedReal(ExpressionUnsignedReal),
+    Unary(Unary),
+    UnsignedInteger(UnsignedInteger),
+    UnsignedReal(UnsignedReal),
 }
 
 impl_debug_for_enum!(Expression {
@@ -423,20 +436,20 @@ impl_debug_for_enum!(Expression {
 });
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionArray {
+pub struct Array {
     pub node_data: NodeData,
     pub args: Vec<Expression>,
 }
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionUnary {
+pub struct Unary {
     pub node_data: NodeData,
     pub op: UnaryOp,
     pub rhs: Box<Expression>,
 }
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionBinary {
+pub struct Binary {
     pub node_data: NodeData,
     pub op: BinaryOp,
     pub lhs: Box<Expression>,
@@ -465,19 +478,19 @@ pub struct ExpressionIfBlock {
 }
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionUnsignedInteger {
+pub struct UnsignedInteger {
     pub node_data: NodeData,
     pub val: String,
 }
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionUnsignedReal {
+pub struct UnsignedReal {
     pub node_data: NodeData,
     pub val: String,
 }
 
 #[derive(CommonTraits!, Default)]
-pub struct ExpressionBoolean {
+pub struct Boolean {
     pub node_data: NodeData,
     pub val: bool,
 }
@@ -494,15 +507,16 @@ impl fmt::Debug for ComponentReference {
         let parts = self
             .parts
             .iter()
-            .map(|part| format!("{:#?}", part))
+            .map(|part| format!("{:?}", part))
             .collect::<Vec<_>>()
             .join(".");
         write!(
             f,
-            "ComponentReference({}{}: {:#?})",
+            "ComponentReference {{{}{}, id: {}, span: {:?}}}",
             if self.local { "." } else { "" },
             parts,
-            self.node_data,
+            self.node_data.id,
+            self.node_data.span,
         )
     }
 }
@@ -517,9 +531,9 @@ pub struct RefPart {
 impl fmt::Debug for RefPart {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.array_subscripts.is_empty() {
-            write!(f, "{:#?}", self.name)
+            write!(f, "{:?}", self.name)
         } else {
-            write!(f, "{:#?}{:?}", self.name, self.array_subscripts)
+            write!(f, "{:?}{:?}", self.name, self.array_subscripts)
         }
     }
 }
@@ -612,11 +626,17 @@ pub struct ModExprBreak {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Common
 
-#[derive(CommonTraits!, Default)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Description {
     pub node_data: NodeData,
     pub strings: Vec<String>,
     pub annotation: Vec<Argument>,
+}
+
+impl fmt::Debug for Description {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {:?}", self.strings.join(" "), self.annotation)
+    }
 }
 
 #[derive(CommonTraits!, Default)]
@@ -754,7 +774,16 @@ pub enum ClassType {
     Type,
 }
 
-pub type DescriptionString = Vec<String>;
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DescriptionString {
+    pub parts: Vec<String>,
+}
+
+impl fmt::Debug for DescriptionString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.parts.join(" "))
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct Name {
@@ -764,23 +793,5 @@ pub struct Name {
 impl fmt::Debug for Name {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.parts.join("."))
-    }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Unit Testing
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ast() {
-        let mut def = StoredDefinition::default();
-
-        // class ball
-        let class_ball = ClassDefinition {
-            ..Default::default()
-        };
-        def.classes.push(class_ball);
     }
 }

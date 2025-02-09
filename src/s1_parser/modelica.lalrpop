@@ -152,7 +152,8 @@ pub StoredDefinition: ast::StoredDefinition = {
         let node_data = NodeData::new(id, left, right);
         ast::StoredDefinition {
             node_data,
-            classes,
+            classes: classes.into_iter()
+                .map(|class| (class.name.clone(), class)).collect(),
             within,
             rumoca_parser_version: "".to_string(),
             rumoca_parser_git: "".to_string(),
@@ -184,7 +185,8 @@ pub ClassDefinition: ast::ClassDefinition = {
             ast::ClassSpecifier::Extends(spec) => (spec.name, spec.modification, spec.description, spec.composition),
             ast::ClassSpecifier::Empty => panic!("Empty ClassSpecifier"),
         };
-        ast::ClassDefinition {
+
+        let mut def = ast::ClassDefinition {
             node_data: NodeData::new(id, left, right),
             name,
             class_type: prefixes.class_type,
@@ -194,9 +196,35 @@ pub ClassDefinition: ast::ClassDefinition = {
                 ..Default::default()
             },
             modification,
-            composition,
             description,
+            ..Default::default()
+        };
+
+        for part in composition {
+            match part {
+                ast::CompositionPart::ElementList(list) => {
+                    for element in list.elements {
+                    }
+                },
+                ast::CompositionPart::AlgorithmSection(sec) => {
+                    if sec.initial {
+                        def.initial_algorithms.push(sec.statements);
+                    } else {
+                        def.algorithms.push(sec.statements);
+                    }
+                }
+                ast::CompositionPart::EquationSection(sec) => {
+                    if sec.initial {
+                        def.initial_equations.extend(sec.equations);
+                    } else {
+                        def.equations.extend(sec.equations);
+                    }
+                }
+                _ => {}
+            }
         }
+
+        def
     }
 }
 //✅ class-prefixes :
@@ -1162,7 +1190,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="11")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> ":" <rhs:ExpressionSimple> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op: ast::BinaryOp::Range,
             lhs: Box::new(lhs),
@@ -1174,7 +1202,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="10")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> "or" <rhs:ExpressionSimple> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op: ast::BinaryOp::Or,
             lhs: Box::new(lhs),
@@ -1186,7 +1214,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="9")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> "and" <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op: ast::BinaryOp::Add,
             lhs: Box::new(lhs),
@@ -1198,7 +1226,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="8")]
     <left: @L> "not" <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Unary(ast::ExpressionUnary {
+        ast::Expression::Unary(ast::Unary {
             node_data: NodeData::new(id, left, right),
             op: ast::UnaryOp::Not,
             rhs: Box::new(rhs),
@@ -1209,7 +1237,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="7")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:RelationalOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
@@ -1221,7 +1249,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="6")] #[assoc(side="right")]
     <left: @L> <op:AddUnaryOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Unary(ast::ExpressionUnary {
+        ast::Expression::Unary(ast::Unary {
             node_data: NodeData::new(id, left, right),
             op,
             rhs: Box::new(rhs),
@@ -1230,7 +1258,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="5")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:AddBinaryOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
@@ -1242,7 +1270,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="4")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op: MulOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
@@ -1254,7 +1282,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="3")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:FactorOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::ExpressionBinary {
+        ast::Expression::Binary(ast::Binary {
             node_data: NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
@@ -1278,7 +1306,7 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="0")]
     <left: @L> "(" <rhs:ParenthesisExpression> ")" <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Unary(ast::ExpressionUnary {
+        ast::Expression::Unary(ast::Unary {
             node_data: NodeData::new(id, left, right),
             op: ast::UnaryOp::Paren,
             rhs: Box::new(rhs),
@@ -1286,28 +1314,28 @@ ExpressionSimple: ast::Expression = {
     },
     <left: @L> "{" <args:SeparatedList<Expression, ",">> "}" <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Array(ast::ExpressionArray {
+        ast::Expression::Array(ast::Array {
             node_data: NodeData::new(id, left, right),
             args
         })
     },
     <left: @L> <val:"UNSIGNED-INTEGER"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::UnsignedInteger(ast::ExpressionUnsignedInteger {
+        ast::Expression::UnsignedInteger(ast::UnsignedInteger {
             node_data: NodeData::new(id, left, right),
             val,
         })
     },
     <left: @L> <val:"UNSIGNED-REAL"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::UnsignedReal(ast::ExpressionUnsignedReal {
+        ast::Expression::UnsignedReal(ast::UnsignedReal {
             node_data: NodeData::new(id, left, right),
             val,
         })
     },
     <left: @L> <val:"boolean"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Boolean(ast::ExpressionBoolean {
+        ast::Expression::Boolean(ast::Boolean {
             node_data: NodeData::new(id, left, right),
             val,
         })
@@ -1462,7 +1490,7 @@ pub SubscriptRange: ast::SubscriptRange = {
 //✅ description :
 //✅    description-string [ annotation-clause ]
 pub Description: Option<ast::Description> = {
-    <left: @L> <strings: DescriptionString>
+    <left: @L> <description_string: DescriptionString>
     <annotation: AnnotationClause?> <right: @R>
     => {
         if left == right {
@@ -1471,7 +1499,7 @@ pub Description: Option<ast::Description> = {
             let id = context.new_id();
             Some(ast::Description {
                 node_data: NodeData::new(id, left, right),
-                strings,
+                strings: description_string.parts,
                 annotation: annotation.unwrap_or(Vec::new()),
             })
         }
@@ -1480,9 +1508,11 @@ pub Description: Option<ast::Description> = {
 
 //✅ description-string :
 //✅    [ STRING { "+" STRING } ]
-pub DescriptionString: Vec<String> = {
+pub DescriptionString: ast::DescriptionString = {
     <s:DescriptionStringPart?> => {
-        s.unwrap_or(Vec::new())
+        ast::DescriptionString {
+            parts: s.unwrap_or(Vec::new())
+        }
     }
 }
 // Note: LALRPOP doesn't like empty expressions here, so
