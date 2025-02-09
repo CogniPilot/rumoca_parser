@@ -1,7 +1,6 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::hash::{Hash, Hasher};
 
 derive_alias! {
     #[derive(CommonTraits!)] = #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)];
@@ -108,21 +107,17 @@ pub struct ClassDefinition {
     pub node_data: NodeData,
     pub name: String,
     pub class_type: ClassType,
+    pub extends: Vec<TypeSpecifier>,
+    pub imports: Vec<ImportClause>,
     pub flags: ClassFlags,
     pub modification: Vec<Argument>,
     pub description: DescriptionString,
-    //pub composition: Vec<CompositionPart>,
     pub components: IndexMap<String, ComponentDeclaration>,
+    pub classes: IndexMap<String, ClassDefinition>,
     pub equations: Vec<Equation>,
     pub algorithms: Vec<Vec<Statement>>,
     pub initial_equations: Vec<Equation>,
     pub initial_algorithms: Vec<Vec<Statement>>,
-}
-
-impl Hash for ClassDefinition {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.node_data.id.hash(state);
-    }
 }
 
 #[derive(CommonTraits!, Default)]
@@ -189,11 +184,12 @@ pub struct AlgorithmSection {
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[allow(clippy::large_enum_variant)]
 pub enum Element {
     #[default]
     Empty,
     ClassDefinition(ClassDefinition),
-    ComponentClause(ComponentClause),
+    ComponentClause(Vec<ComponentDeclaration>),
     ExtendsClause(ExtendsClause),
     ImportClause(ImportClause),
 }
@@ -223,6 +219,12 @@ pub struct ExtendsClause {
 pub struct ComponentDeclaration {
     pub node_data: NodeData,
     pub name: String,
+    pub type_specifier: TypeSpecifier,
+    pub flags: ElementFlags,
+    pub connection: Connection,
+    pub variability: Variability,
+    pub causality: Causality,
+    pub visibility: Visibility,
     pub array_subscripts: Vec<Subscript>,
     pub modification: Option<Modification>,
     pub condition_attribute: Option<Expression>,
@@ -233,18 +235,6 @@ pub struct ComponentDeclaration {
 pub struct ClassPrefixes {
     pub is_partial: bool,
     pub class_type: ClassType,
-}
-
-#[derive(CommonTraits!, Default)]
-pub struct ComponentClause {
-    pub node_data: NodeData,
-    pub type_specifier: TypeSpecifier,
-    pub flags: ElementFlags,
-    pub connection: Connection,
-    pub variability: Variability,
-    pub causality: Causality,
-    pub array_subscripts: Vec<Subscript>,
-    pub components: Vec<ComponentDeclaration>,
 }
 
 #[derive(CommonTraits!, Default)]

@@ -204,6 +204,24 @@ pub ClassDefinition: ast::ClassDefinition = {
             match part {
                 ast::CompositionPart::ElementList(list) => {
                     for element in list.elements {
+                        match element {
+                            ast::Element::ImportClause(import) => {
+                                def.imports.push(import);
+                            }
+                            ast::Element::ExtendsClause(extends) => {
+                                def.extends.push(extends.type_specifier);
+                            }
+                            ast::Element::ClassDefinition(class) => {
+                                def.classes.insert(class.name.clone(), class);
+                            }
+                            ast::Element::ComponentClause(components) => {
+                                for mut comp in components {
+                                    comp.visibility = list.visibility.clone();
+                                    def.components.insert(comp.name.clone(), comp);
+                                }
+                            }
+                            ast::Element::Empty => {}
+                        }
                     }
                 },
                 ast::CompositionPart::AlgorithmSection(sec) => {
@@ -423,30 +441,33 @@ pub ElementFlags : ast::ElementFlags = {
 }
 
 pub Element : ast::Element = {
-    <elem: ComponentClause> => ast::Element::ComponentClause(elem),
+    <elem: ElementComponentClause> => ast::Element::ComponentClause(elem),
     <elem: ClassDefinition> => ast::Element::ClassDefinition(elem),
     <elem: ExtendsClause> => ast::Element::ExtendsClause(elem),
 }
 
-pub ElementComponentClause : ast::ComponentClause = {
-    <left: @L> <flags: ElementFlags> <clause: ComponentClause> <right: @R> => {
-        let mut res = clause;
-        res.flags = flags;
-        res.node_data.span = (left, right);
-        res
+pub ElementComponentClause : Vec<ast::ComponentDeclaration> = {
+    <left: @L> <flags: ElementFlags> <mut components: ComponentClause> <right: @R> => {
+        for comp in &mut components {
+            comp.flags.replaceable |= flags.replaceable;
+            comp.flags.redeclare |= flags.redeclare;
+            comp.flags.is_final |= flags.is_final;
+            comp.flags.inner |= flags.inner;
+            comp.flags.outer |= flags.outer;
+        }
+        components
     },
 }
 
 pub ElementClassDefinition : ast::ClassDefinition = {
-    <left: @L> <flags: ElementFlags> <def: ClassDefinition> <right: @R>  => {
-        let mut res = def;
-        res.flags.redeclare = flags.redeclare;
-        res.flags.is_final = flags.is_final;
-        res.flags.inner = flags.inner;
-        res.flags.outer = flags.outer;
-        res.flags.replaceable = flags.replaceable;
-        res.node_data.span = (left, right);
-        res
+    <left: @L> <flags: ElementFlags> <mut def: ClassDefinition> <right: @R>  => {
+        def.flags.redeclare |= flags.redeclare;
+        def.flags.is_final |= flags.is_final;
+        def.flags.inner |= flags.inner;
+        def.flags.outer |= flags.outer;
+        def.flags.replaceable |= flags.replaceable;
+        def.node_data.span = (left, right);
+        def
     },
 }
 
@@ -532,22 +553,21 @@ pub ExtendsClause: ast::ExtendsClause = {
 
 //✅ component-clause :
 //✅    type-prefix type-specifier [ array-subscripts ] component-list
-pub ComponentClause: ast::ComponentClause = {
-    <left: @L> <type_prefix: TypePrefix>
+pub ComponentClause: Vec<ast::ComponentDeclaration> = {
+    <type_prefix: TypePrefix>
     <type_specifier: TypeSpecifier>
     <array_subscripts: ArraySubscripts?>
-    <components: ComponentList> <right: @R> => {
-        let id = context.new_id();
-        ast::ComponentClause {
-            node_data: NodeData::new(id, left, right),
-            type_specifier,
-            flags: ast::ElementFlags::default(),
-            connection: type_prefix.connection,
-            variability: type_prefix.variability,
-            causality: type_prefix.causality, 
-            array_subscripts: array_subscripts.unwrap_or(Vec::new()),
-            components,
+    <mut components: ComponentList> => {
+        for comp in &mut components {
+            comp.type_specifier = type_specifier.clone();
+            comp.causality = type_prefix.causality.clone();
+            comp.variability = type_prefix.variability.clone();
+            comp.connection = type_prefix.connection.clone();
+            if let Some(ref subs) = array_subscripts {
+                comp.array_subscripts = subs.clone();
+            }
         }
+        components
     }
 }
 
@@ -602,6 +622,7 @@ pub ComponentDeclaration: ast::ComponentDeclaration = {
             modification: declaration.modification,
             condition_attribute,
             description,
+            ..Default::default()
         }
     }
 }
@@ -707,21 +728,16 @@ pub Argument: ast::Argument = {
 
 //✅ component-clause1 :
 //✅    type-prefix type-specifier component-declaration1
-pub ComponentClause1: ast::ComponentClause = {
-    <left: @L> <type_prefix: TypePrefix>
+pub ComponentClause1: ast::ComponentDeclaration = {
+    <type_prefix: TypePrefix>
     <type_specifier: TypeSpecifier>
-    <component_declaration1: ComponentDeclaration1> <right: @R> => {
-        let id = context.new_id();
-        ast::ComponentClause {
-            node_data: NodeData::new(id, left, right),
-            type_specifier,
-            flags: ast::ElementFlags::default(),
-            connection: type_prefix.connection,
-            variability: type_prefix.variability,
-            causality: type_prefix.causality, 
-            array_subscripts: Vec::new(),
-            components: vec![component_declaration1],
-        }
+    <component_declaration1: ComponentDeclaration1> => {
+        let mut comp = component_declaration1;
+        comp.type_specifier = type_specifier;
+        comp.causality = type_prefix.causality;
+        comp.variability = type_prefix.variability;
+        comp.connection = type_prefix.connection;
+        comp
     }
 }
 
@@ -738,6 +754,7 @@ pub ComponentDeclaration1: ast::ComponentDeclaration = {
             modification: declaration.modification,
             condition_attribute: None,
             description,
+            ..Default::default()
         }
     }
 }
