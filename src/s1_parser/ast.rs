@@ -12,7 +12,13 @@ macro_rules! impl_debug_for_enum {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self {
                     $(
-                        Self::$variant(v) => write!(f, "{:#?}", v),
+                        Self::$variant(v) => {
+                            if f.alternate() {
+                                write!(f, "{:#?}", v)
+                            } else {
+                                write!(f, "{:?}", v)
+                            }
+                        }
                     )*
                     _ => Ok(()), // Default case for ignored variants
                 }
@@ -254,9 +260,9 @@ pub struct TypeSpecifier {
 impl fmt::Debug for TypeSpecifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.local {
-            write!(f, ".{:#?}", self.name)
+            write!(f, ".{:?}", self.name)
         } else {
-            write!(f, "{:#?}", self.name)
+            write!(f, "{:?}", self.name)
         }
     }
 }
