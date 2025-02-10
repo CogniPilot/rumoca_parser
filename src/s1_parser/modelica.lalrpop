@@ -1,10 +1,10 @@
 // Based on Modelica 3.7-dev Specification
 use crate::s0_lexer::tokens::{Token, LexicalError};
-use crate::s1_parser::ast;
-use crate::s1_parser::ast::NodeData;
-use crate::s1_parser::ast::ParserContext;
+use crate::s1_parser::ast::node;
+use crate::s1_parser::ast::part;
+use crate::s1_parser::ast::fragment;
 
-grammar(context: &mut ParserContext);
+grammar(context: &mut part::ParserContext);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // LALRPOP macros
@@ -143,14 +143,14 @@ extern {
 //✅ stored-definition :
 //✅    [ within [ name ] ";" ]
 //✅    { [ final ] class-definition ";" }
-pub StoredDefinition: ast::StoredDefinition = {
+pub StoredDefinition: node::StoredDefinition = {
     <left: @L>
     <within: ("within" <Name> ";")?>
     <classes:TerminatedList<ClassDefinitionWithFinal, ";">>
     <right: @R> => {
         let id = context.new_id();
-        let node_data = NodeData::new(id, left, right);
-        ast::StoredDefinition {
+        let node_data = part::NodeData::new(id, left, right);
+        node::StoredDefinition {
             node_data,
             classes: classes.into_iter()
                 .map(|class| (class.name.clone(), class)).collect(),
@@ -162,7 +162,7 @@ pub StoredDefinition: ast::StoredDefinition = {
     }
 }
 
-ClassDefinitionWithFinal: ast::ClassDefinition = {
+ClassDefinitionWithFinal: node::ClassDefinition = {
     <is_final: "final"?> <mut class: ClassDefinition> => {
         class.flags.is_final = is_final.is_some();
         class
@@ -175,22 +175,22 @@ ClassDefinitionWithFinal: ast::ClassDefinition = {
 
 //✅ class-definition :
 //✅    [ encapsulated ] class-prefixes class-specifier
-pub ClassDefinition: ast::ClassDefinition = {
+pub ClassDefinition: node::ClassDefinition = {
     <left: @L> <encapsulated: "encapsulated"?>
     <prefixes: ClassPrefixes>
     <specifier: ClassSpecifier> <right: @R> => {
         let id = context.new_id();
         let (name, modification, description, composition) = match specifier {
-            ast::ClassSpecifier::Long(spec) => (spec.name, Vec::new(), spec.description, spec.composition),
-            ast::ClassSpecifier::Extends(spec) => (spec.name, spec.modification, spec.description, spec.composition),
-            ast::ClassSpecifier::Empty => panic!("Empty ClassSpecifier"),
+            fragment::ClassSpecifier::Long(spec) => (spec.name, Vec::new(), spec.description, spec.composition),
+            fragment::ClassSpecifier::Extends(spec) => (spec.name, spec.modification, spec.description, spec.composition),
+            fragment::ClassSpecifier::Empty => panic!("Empty ClassSpecifier"),
         };
 
-        let mut def = ast::ClassDefinition {
-            node_data: NodeData::new(id, left, right),
+        let mut def = node::ClassDefinition {
+            node_data: part::NodeData::new(id, left, right),
             name,
             class_type: prefixes.class_type,
-            flags: ast::ClassFlags {
+            flags: part::ClassFlags {
                 encapsulated: encapsulated.is_some(),
                 partial: prefixes.is_partial,
                 ..Default::default()
@@ -202,36 +202,36 @@ pub ClassDefinition: ast::ClassDefinition = {
 
         for part in composition {
             match part {
-                ast::CompositionPart::ElementList(list) => {
+                fragment::CompositionPart::ElementList(list) => {
                     for element in list.elements {
                         match element {
-                            ast::Element::ImportClause(import) => {
+                            fragment::Element::ImportClause(import) => {
                                 def.imports.push(import);
                             }
-                            ast::Element::ExtendsClause(extends) => {
+                            fragment::Element::ExtendsClause(extends) => {
                                 def.extends.push(extends.type_specifier);
                             }
-                            ast::Element::ClassDefinition(class) => {
+                            fragment::Element::ClassDefinition(class) => {
                                 def.classes.insert(class.name.clone(), class);
                             }
-                            ast::Element::ComponentClause(components) => {
+                            fragment::Element::ComponentClause(components) => {
                                 for mut comp in components {
                                     comp.visibility = list.visibility.clone();
                                     def.components.insert(comp.name.clone(), comp);
                                 }
                             }
-                            ast::Element::Empty => {}
+                            fragment::Element::Empty => {}
                         }
                     }
                 },
-                ast::CompositionPart::AlgorithmSection(sec) => {
+                fragment::CompositionPart::AlgorithmSection(sec) => {
                     if sec.initial {
                         def.initial_algorithms.push(sec.statements);
                     } else {
                         def.algorithms.push(sec.statements);
                     }
                 }
-                ast::CompositionPart::EquationSection(sec) => {
+                fragment::CompositionPart::EquationSection(sec) => {
                     if sec.initial {
                         def.initial_equations.extend(sec.equations);
                     } else {
@@ -257,39 +257,39 @@ pub ClassDefinition: ast::ClassDefinition = {
 //✅      | [ pure | impure ] [ operator ] function
 //✅      | operator
 //✅    )
-ClassPrefixes: ast::ClassPrefixes = {
+ClassPrefixes: fragment::ClassPrefixes = {
     <left: @L> <partial: "partial"?> <class_type: ClassType> <right: @R> => {
-        ast::ClassPrefixes {
+        fragment::ClassPrefixes {
             is_partial: partial.is_some(),
             class_type,
         }
     }
 }
 
-pub ClassType: ast::ClassType = {
-    "class" => ast::ClassType::Class,
-    "model" => ast::ClassType::Model,
-    "record" => ast::ClassType::Record,
-    "operator" "record" => ast::ClassType::OperatorRecord,
-    "block" => ast::ClassType::Block,
-    "expandable" "connector" => ast::ClassType::ExpandableConnector,
-    "connector" => ast::ClassType::Connector,
-    "type" => ast::ClassType::Type,
-    "package" => ast::ClassType::Package,
-    "pure" "function" => ast::ClassType::PureFunction,
-    "impure" "function" => ast::ClassType::ImpureFunction,
-    "operator" "function" => ast::ClassType::OperatorFunction,
-    "function" => ast::ClassType::Function,
-    "operator" => ast::ClassType::Operator,
+pub ClassType: part::ClassType = {
+    "class" => part::ClassType::Class,
+    "model" => part::ClassType::Model,
+    "record" => part::ClassType::Record,
+    "operator" "record" => part::ClassType::OperatorRecord,
+    "block" => part::ClassType::Block,
+    "expandable" "connector" => part::ClassType::ExpandableConnector,
+    "connector" => part::ClassType::Connector,
+    "type" => part::ClassType::Type,
+    "package" => part::ClassType::Package,
+    "pure" "function" => part::ClassType::PureFunction,
+    "impure" "function" => part::ClassType::ImpureFunction,
+    "operator" "function" => part::ClassType::OperatorFunction,
+    "function" => part::ClassType::Function,
+    "operator" => part::ClassType::Operator,
 }
 
 //✅ class-specifier :
 //✅    long-class-specifier
 //🟥     | short-class-specifier
 //🟥     | der-class-specifier
-pub ClassSpecifier: ast::ClassSpecifier = {
-    <spec: ClassSpecifierLong> => ast::ClassSpecifier::Long(spec),
-    <spec: ClassSpecifierExtends> => ast::ClassSpecifier::Extends(spec),
+pub ClassSpecifier: fragment::ClassSpecifier = {
+    <spec: ClassSpecifierLong> => fragment::ClassSpecifier::Long(spec),
+    <spec: ClassSpecifierExtends> => fragment::ClassSpecifier::Extends(spec),
 }
 
 pub IDENT: String = {
@@ -299,15 +299,13 @@ pub IDENT: String = {
 //✅ long-class-specifier :
 //✅    IDENT description-string composition end IDENT
 //✅    | extends IDENT [ class-modification ] description-string composition end IDENT
-pub ClassSpecifierLong: ast::ClassSpecifierLong = {
-    <left: @L> <name: IDENT>
+pub ClassSpecifierLong: fragment::ClassSpecifierLong = {
+    <name: IDENT>
     <description: DescriptionString>
     <composition: Composition>
     "end"
-    <name_end: IDENT> <right: @R> => {
-        let id = context.new_id();
-        ast::ClassSpecifierLong {
-            node_data: NodeData::new(id, left, right),
+    <name_end: IDENT> => {
+        fragment::ClassSpecifierLong {
             name,
             description,
             composition,
@@ -316,15 +314,13 @@ pub ClassSpecifierLong: ast::ClassSpecifierLong = {
     }
 }
 
-pub ClassSpecifierExtends: ast::ClassSpecifierExtends = {
-    <left: @L> "extends" <name: IDENT>
+pub ClassSpecifierExtends: fragment::ClassSpecifierExtends = {
+    "extends" <name: IDENT>
     <modification: ModificationClass?>
     <description: DescriptionString>
     <composition: Composition>
-    "end" <name_end: IDENT> <right: @R> => {
-        let id = context.new_id();
-        ast::ClassSpecifierExtends {
-            node_data: NodeData::new(id, left, right),
+    "end" <name_end: IDENT> => {
+        fragment::ClassSpecifierExtends {
             name,
             modification: modification.unwrap_or(Vec::new()),
             description,
@@ -362,15 +358,13 @@ pub ClassSpecifierExtends: ast::ClassSpecifierExtends = {
 //🟥      [ external-function-call ] [ annotation-clause ] ";"
 //🟥    ]
 //🟥    [ annotation-clause ";" ]
-pub Composition: Vec<ast::CompositionPart> = {
-    <left: @L> <first:ElementList>
-    <remaining: CompositionPart*> <right: @R>
+pub Composition: Vec<fragment::CompositionPart> = {
+    <first:ElementList>
+    <remaining: CompositionPart*>
     => {
-        let id = context.new_id();
         let mut v = Vec::new();
-        v.push(ast::CompositionPart::ElementList(ast::ElementList {
-            node_data: NodeData::new(id, left, right),
-            visibility: ast::Visibility::Public,
+        v.push(fragment::CompositionPart::ElementList(fragment::ElementList {
+            visibility: part::Visibility::Public,
             elements: first,
         }));
         v.extend(remaining);
@@ -378,26 +372,25 @@ pub Composition: Vec<ast::CompositionPart> = {
     }
 }
 
-pub CompositionPart: ast::CompositionPart = {
-    <comp: AlgorithmSection> => ast::CompositionPart::AlgorithmSection(comp),
-    <comp: ElementListWithVisibility> => ast::CompositionPart::ElementList(comp),
-    <comp: EquationSection> => ast::CompositionPart::EquationSection(comp),
+pub CompositionPart: fragment::CompositionPart = {
+    <comp: AlgorithmSection> => fragment::CompositionPart::AlgorithmSection(comp),
+    <comp: ElementListWithVisibility> => fragment::CompositionPart::ElementList(comp),
+    <comp: EquationSection> => fragment::CompositionPart::EquationSection(comp),
 }
 
-pub ElementListWithVisibility: ast::ElementList = {
-    <left: @L> <visibility:Visibility> <elements: ElementList> <right: @R> => {
+pub ElementListWithVisibility: fragment::ElementList = {
+    <visibility:Visibility> <elements: ElementList> => {
         let id = context.new_id();
-        ast::ElementList {
-            node_data: NodeData::new(id, left, right),
+        fragment::ElementList {
             visibility,
             elements,
         }
     }
 }
 
-pub Visibility: ast::Visibility = {
-    "public" => ast::Visibility::Public,
-    "protected" => ast::Visibility::Protected,
+pub Visibility: part::Visibility = {
+    "public" => part::Visibility::Public,
+    "protected" => part::Visibility::Protected,
 }
 
 //✅ language-specification :
@@ -410,7 +403,7 @@ pub LanguageSpecification: String = {
 
 //✅ element-list :
 //✅    { element ";" }
-pub ElementList: Vec<ast::Element> = {
+pub ElementList: Vec<fragment::Element> = {
     <elements:TerminatedList<Element, ";">> => elements
 }
 
@@ -424,13 +417,13 @@ pub ElementList: Vec<ast::Element> = {
 //✅          class-definition
 //✅          | component-clause)
 //🟥        [ constraining-clause description ])
-pub ElementFlags : ast::ElementFlags = {
+pub ElementFlags : part::ElementFlags = {
     <redeclare:"redeclare"?>
     <is_final:"final"?>
     <inner:"inner"?>
     <outer:"outer"?>
     <replaceable:"replaceable"?> => {
-        ast::ElementFlags {
+        part::ElementFlags {
             redeclare: redeclare.is_some(),
             is_final: is_final.is_some(),
             inner: inner.is_some(),
@@ -440,13 +433,13 @@ pub ElementFlags : ast::ElementFlags = {
     }
 }
 
-pub Element : ast::Element = {
-    <elem: ElementComponentClause> => ast::Element::ComponentClause(elem),
-    <elem: ClassDefinition> => ast::Element::ClassDefinition(elem),
-    <elem: ExtendsClause> => ast::Element::ExtendsClause(elem),
+pub Element : fragment::Element = {
+    <elem: ElementComponentClause> => fragment::Element::ComponentClause(elem),
+    <elem: ClassDefinition> => fragment::Element::ClassDefinition(elem),
+    <elem: ExtendsClause> => fragment::Element::ExtendsClause(elem),
 }
 
-pub ElementComponentClause : Vec<ast::ComponentDeclaration> = {
+pub ElementComponentClause : Vec<node::ComponentDeclaration> = {
     <left: @L> <flags: ElementFlags> <mut components: ComponentClause> <right: @R> => {
         for comp in &mut components {
             comp.flags.replaceable |= flags.replaceable;
@@ -459,7 +452,7 @@ pub ElementComponentClause : Vec<ast::ComponentDeclaration> = {
     },
 }
 
-pub ElementClassDefinition : ast::ClassDefinition = {
+pub ElementClassDefinition : node::ClassDefinition = {
     <left: @L> <flags: ElementFlags> <mut def: ClassDefinition> <right: @R>  => {
         def.flags.redeclare |= flags.redeclare;
         def.flags.is_final |= flags.is_final;
@@ -477,12 +470,12 @@ pub ElementClassDefinition : ast::ClassDefinition = {
 //🟥      | name [ ".*" | "." ( "*" | "{" import-list "}" ) ])
 //✅    description
 
-pub ImportClause : ast::ImportClause = {
+pub ImportClause : node::ImportClause = {
     // qualified import
     <left: @L> "import" <name: Name> <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::ImportClause {
-            node_data: NodeData::new(id, left, right),
+        node::ImportClause {
+            node_data: part::NodeData::new(id, left, right),
             alias: "".to_string(),
             name,
             description,
@@ -490,21 +483,21 @@ pub ImportClause : ast::ImportClause = {
     },
     // unqualified import
     // "import" <name: Name> ".*" <description: Description> => {
-    //     ast::Element::ImportClause {
+    //     fragment::Element::ImportClause {
     //         alias: None,
     //         name,
     //     }
     // },
     // renaming qualified import
     // "import" <alias:IDENT> "=" <name: Name> <description: Description> => {
-    //     ast::Element::ImportClause {
+    //     fragment::Element::ImportClause {
     //         alias: None,
     //         name,
     //     }
     // },
     // multiple definition import
     // "import" <name:Name> "." "{" SeparatedListMinOne<IDENT, ","> "}"=> {
-    //     ast::Element::ImportClause {
+    //     fragment::Element::ImportClause {
     //         alias: None,
     //         name,
     //     }
@@ -524,12 +517,12 @@ pub ImportClause : ast::ImportClause = {
 //✅    extends type-specifier
 //🟥    [ class-or-inheritance-modification ]
 //🟥    [ annotation-clause ]
-pub ExtendsClause: ast::ExtendsClause = {
+pub ExtendsClause: node::ExtendsClause = {
     "extends"
     <left: @L> <type_specifier: TypeSpecifier> <right: @R> => {
         let id = context.new_id();
-        ast::ExtendsClause {
-            node_data: NodeData::new(id, left, right),
+        node::ExtendsClause {
+            node_data: part::NodeData::new(id, left, right),
             type_specifier,
         }
     }
@@ -553,7 +546,7 @@ pub ExtendsClause: ast::ExtendsClause = {
 
 //✅ component-clause :
 //✅    type-prefix type-specifier [ array-subscripts ] component-list
-pub ComponentClause: Vec<ast::ComponentDeclaration> = {
+pub ComponentClause: Vec<node::ComponentDeclaration> = {
     <type_prefix: TypePrefix>
     <type_specifier: TypeSpecifier>
     <array_subscripts: ArraySubscripts?>
@@ -575,48 +568,48 @@ pub ComponentClause: Vec<ast::ComponentDeclaration> = {
 //✅    [ flow | stream ]
 //✅    [ discrete | parameter | constant ]
 //✅    [ input | output ]
-pub TypePrefix: ast::TypePrefix = {
+pub TypePrefix: fragment::TypePrefix = {
     <left: @L> <connection: Connection?>
     <variability: Variability?>
     <causality: Causality?> <right: @R> => {
         let id = context.new_id();
-        ast::TypePrefix {
-            connection: connection.unwrap_or(ast::Connection::Empty),
-            variability: variability.unwrap_or(ast::Variability::Empty),
-            causality: causality.unwrap_or(ast::Causality::Empty),
+        fragment::TypePrefix {
+            connection: connection.unwrap_or(part::Connection::Empty),
+            variability: variability.unwrap_or(part::Variability::Empty),
+            causality: causality.unwrap_or(part::Causality::Empty),
         }
     }
 }
-pub Connection: ast::Connection = {
-    "flow" => ast::Connection::Flow,
-    "stream" => ast::Connection::Stream,
+pub Connection: part::Connection = {
+    "flow" => part::Connection::Flow,
+    "stream" => part::Connection::Stream,
 }
-pub Variability: ast::Variability = {
-    "discrete" => ast::Variability::Discrete,
-    "parameter" => ast::Variability::Parameter,
-    "constant" => ast::Variability::Constant,
+pub Variability: part::Variability = {
+    "discrete" => part::Variability::Discrete,
+    "parameter" => part::Variability::Parameter,
+    "constant" => part::Variability::Constant,
 }
-pub Causality: ast::Causality = {
-    "input" => ast::Causality::Input,
-    "output" => ast::Causality::Output,
+pub Causality: part::Causality = {
+    "input" => part::Causality::Input,
+    "output" => part::Causality::Output,
 }
 //✅ component-list :
 //✅    component-declaration { "," component-declaration }
-pub ComponentList: Vec<ast::ComponentDeclaration> = {
+pub ComponentList: Vec<node::ComponentDeclaration> = {
     <components: SeparatedList<ComponentDeclaration, ",">> => {
         components
     }
 }
 //✅ component-declaration :
 //✅    declaration [ condition-attribute ] description
-pub ComponentDeclaration: ast::ComponentDeclaration = {
+pub ComponentDeclaration: node::ComponentDeclaration = {
     <left: @L> <declaration: Declaration>
     <condition_attribute: ConditionAttribute?>
     <description: Description> <right: @R>
     => {
         let id = context.new_id();
-        ast::ComponentDeclaration{
-            node_data: NodeData::new(id, left, right),
+        node::ComponentDeclaration{
+            node_data: part::NodeData::new(id, left, right),
             name: declaration.name,
             array_subscripts: declaration.array_subscripts,
             modification: declaration.modification,
@@ -628,18 +621,17 @@ pub ComponentDeclaration: ast::ComponentDeclaration = {
 }
 //✅ condition-attribute :
 //✅    if expression
-pub ConditionAttribute: ast::Expression = {
+pub ConditionAttribute: node::Expression = {
     "if" <cond: Expression> => cond
 }
 //✅ declaration :
 //✅    IDENT [ array-subscripts ] [ modification ]
-pub Declaration: ast::Declaration = {
-    <left: @L> <name: IDENT>
+pub Declaration: fragment::Declaration = {
+    <name: IDENT>
     <array_subscripts:ArraySubscripts?>
-    <modification:Modification?> <right: @R> => {
+    <modification:Modification?> => {
         let id = context.new_id();
-        ast::Declaration {
-            node_data: NodeData::new(id, left, right),
+        fragment::Declaration {
             name,
             array_subscripts: array_subscripts.unwrap_or(Vec::new()),
             modification,
@@ -655,38 +647,38 @@ pub Declaration: ast::Declaration = {
 //✅ modification :
 //✅    class-modification [ "=" modification-expression ]
 //✅    | "=" modification-expression
-pub Modification: ast::Modification = {
+pub Modification: node::Modification = {
     <left: @L> <args: ModificationClass> <expr: ("=" <ModExpr>)?> <right: @R> => {
         let id = context.new_id();
-        ast::Modification::Class(ast::ModificationClass {
-            node_data: NodeData::new(id, left, right),
+        node::Modification::Class(node::ModificationClass {
+            node_data: part::NodeData::new(id, left, right),
             args,
             expr,
         })
     },
     "=" <expr: ModExpr> => {
-        ast::Modification::Expression(expr)
+        node::Modification::Expression(expr)
     },
 }
 
 //✅ modification-expression :
 //✅    expression
 //✅    | break
-pub ModExpr: ast::ModExpr = {
+pub ModExpr: node::ModExpr = {
     <expr: Expression> => {
-        ast::ModExpr::Expression(expr)
+        node::ModExpr::Expression(expr)
     },
     <left: @L> "break" <right: @R>=> {
         let id = context.new_id();
-        ast::ModExpr::Break(ast::ModExprBreak {
-            node_data: NodeData::new(id, left, right),
+        node::ModExpr::Break(node::ModExprBreak {
+            node_data: part::NodeData::new(id, left, right),
         })
     }
 }
 
 //✅ class-modification :
 //✅    "(" [ argument-list ] ")"
-pub ModificationClass: Vec<ast::Argument> = {
+pub ModificationClass: Vec<node::Argument> = {
     "(" <args: SeparatedList<Argument, ",">> ")" => args
 }
 
@@ -697,12 +689,12 @@ pub ModificationClass: Vec<ast::Argument> = {
 //🟨 argument :
 //🟨    element-modification-or-replaceable
 //🟥    | element-redeclaration
-pub Argument: ast::Argument = {
+pub Argument: node::Argument = {
     <left: @L> <each: "each"?> <is_final: "final"?> <name: Name>
     <modification: Modification?> <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::Argument::Modification(ast::ArgumentModification {
-            node_data: NodeData::new(id, left, right),
+        node::Argument::Modification(node::ArgumentModification {
+            node_data: part::NodeData::new(id, left, right),
             name,
             modification,
             description,
@@ -728,7 +720,7 @@ pub Argument: ast::Argument = {
 
 //✅ component-clause1 :
 //✅    type-prefix type-specifier component-declaration1
-pub ComponentClause1: ast::ComponentDeclaration = {
+pub ComponentClause1: node::ComponentDeclaration = {
     <type_prefix: TypePrefix>
     <type_specifier: TypeSpecifier>
     <component_declaration1: ComponentDeclaration1> => {
@@ -743,12 +735,12 @@ pub ComponentClause1: ast::ComponentDeclaration = {
 
 //✅ component-declaration1 :
 //✅    declaration description
-pub ComponentDeclaration1: ast::ComponentDeclaration = {
+pub ComponentDeclaration1: node::ComponentDeclaration = {
     <left: @L> <declaration: Declaration>
     <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::ComponentDeclaration {
-            node_data: NodeData::new(id, left, right),
+        node::ComponentDeclaration {
+            node_data: part::NodeData::new(id, left, right),
             name: declaration.name,
             array_subscripts: declaration.array_subscripts,
             modification: declaration.modification,
@@ -769,16 +761,12 @@ pub ComponentDeclaration1: ast::ComponentDeclaration = {
 
 //✅ equation-section :
 //✅    [ initial ] equation { some-equation ";" }
-pub EquationSection: ast::EquationSection = {
-    <left: @L>
+pub EquationSection: fragment::EquationSection = {
     <initial:"initial"?>
     "equation"
     <equations:TerminatedList<Equation, ";">>
-    <right: @R>
     => {
-        let id = context.new_id();
-        ast::EquationSection {
-            node_data: NodeData::new(id, left, right),
+        fragment::EquationSection {
             initial: initial.is_some(),
             equations,
         }
@@ -786,14 +774,12 @@ pub EquationSection: ast::EquationSection = {
 }
 //✅ algorithm-section :
 //✅    [ initial ] algorithm { statement ";" }
-pub AlgorithmSection: ast::AlgorithmSection = {
-    <left: @L> <initial:"initial"?>
+pub AlgorithmSection: fragment::AlgorithmSection = {
+    <initial:"initial"?>
     "algorithm"
-    <statements:TerminatedList<Statement, ";">> <right: @R>
+    <statements:TerminatedList<Statement, ";">>
     => {
-        let id = context.new_id();
-        ast::AlgorithmSection {
-            node_data: NodeData::new(id, left, right),
+        fragment::AlgorithmSection {
             initial: initial.is_some(),
             statements,
         }
@@ -808,18 +794,18 @@ pub AlgorithmSection: ast::AlgorithmSection = {
 //🟥      | when-equation
 //🟥      | component-reference function-call-args )
 //🟥    description
-pub Equation: ast::Equation = {
-    <eq: EquationSimple> => ast::Equation::Simple(eq),
-    <eq: EquationIf> => ast::Equation::If(eq),
-    <eq: EquationFor> => ast::Equation::For(eq),
-    <eq: EquationConnect> => ast::Equation::Connect(eq),
+pub Equation: node::Equation = {
+    <eq: EquationSimple> => node::Equation::Simple(eq),
+    <eq: EquationIf> => node::Equation::If(eq),
+    <eq: EquationFor> => node::Equation::For(eq),
+    <eq: EquationConnect> => node::Equation::Connect(eq),
 }
 
-pub EquationSimple: ast::EquationSimple = {
+pub EquationSimple: node::EquationSimple = {
     <left: @L> <lhs:ExpressionSimple> "=" <rhs:Expression> <description: Description> <right: @R>=> {
         let id = context.new_id();
-        ast::EquationSimple {
-            node_data: NodeData::new(id, left, right),
+        node::EquationSimple {
+            node_data: part::NodeData::new(id, left, right),
             lhs,
             rhs,
             description,
@@ -838,21 +824,21 @@ pub EquationSimple: ast::EquationSimple = {
 //🟥      | when-statement )
 //✅    description
 
-pub Statement: ast::Statement = {
-    <stmt: StatementAssignment> => ast::Statement::Assignment(stmt),
-    <stmt: StatementIf> => ast::Statement::If(stmt),
-    <stmt: StatementFor> => ast::Statement::For(stmt),
-    <stmt: StatementWhile> =>  ast::Statement::While(stmt),
-    <stmt: StatementBreak> =>  ast::Statement::Break(stmt),
-    <stmt: StatementReturn> =>  ast::Statement::Return(stmt),
+pub Statement: node::Statement = {
+    <stmt: StatementAssignment> => node::Statement::Assignment(stmt),
+    <stmt: StatementIf> => node::Statement::If(stmt),
+    <stmt: StatementFor> => node::Statement::For(stmt),
+    <stmt: StatementWhile> =>  node::Statement::While(stmt),
+    <stmt: StatementBreak> =>  node::Statement::Break(stmt),
+    <stmt: StatementReturn> =>  node::Statement::Return(stmt),
 }
 
-pub StatementAssignment: ast::StatementAssignment = {
+pub StatementAssignment: node::StatementAssignment = {
     <left: @L> <comp: ComponentReference> ":="
     <rhs:Expression> <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::StatementAssignment {
-            node_data: NodeData::new(id, left, right),
+        node::StatementAssignment {
+            node_data: part::NodeData::new(id, left, right),
             comp,
             rhs,
             description,
@@ -860,21 +846,21 @@ pub StatementAssignment: ast::StatementAssignment = {
     }
 }
 
-pub StatementBreak: ast::StatementBreak = {
+pub StatementBreak: node::StatementBreak = {
     <left: @L> "break" <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::StatementBreak {
-            node_data: NodeData::new(id, left, right),
+        node::StatementBreak {
+            node_data: part::NodeData::new(id, left, right),
             description,
         }
     },
 }
 
-pub StatementReturn: ast::StatementReturn = {
+pub StatementReturn: node::StatementReturn = {
     <left: @L> "return" <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::StatementReturn {
-            node_data: NodeData::new(id, left, right),
+        node::StatementReturn {
+            node_data: part::NodeData::new(id, left, right),
             description,
         }
     },
@@ -892,24 +878,24 @@ pub StatementReturn: ast::StatementReturn = {
 //✅    ]
 //✅    end if
 
-pub EquationIf: ast::EquationIf = {
+pub EquationIf: node::EquationIf = {
     <left: @L> "if" <if_cond:Expression> "then"
     <then_eqs:TerminatedList<Equation, ";">>
     <else_if_blocks: EquationElseIfBlock*>
     <else_eqs: EquationElseBlock?>
     "end" "if" <description: Description> <right: @R>=> {
         let id = context.new_id();
-        let mut if_blocks = Vec::<ast::EquationIfBlock>::new();
+        let mut if_blocks = Vec::<node::EquationIfBlock>::new();
         if_blocks.push(
-            ast::EquationIfBlock {
-                node_data: NodeData::new(context.new_id(), left, right),
+            node::EquationIfBlock {
+                node_data: part::NodeData::new(context.new_id(), left, right),
                 cond: if_cond,
                 eqs: then_eqs,
             }
         );
         if_blocks.extend(else_if_blocks);
-        ast::EquationIf {
-            node_data: NodeData::new(id, left, right),
+        node::EquationIf {
+            node_data: part::NodeData::new(id, left, right),
             if_blocks,
             else_eqs: else_eqs.unwrap_or(Vec::new()),
             description,
@@ -917,18 +903,18 @@ pub EquationIf: ast::EquationIf = {
     }
 }
 
-pub EquationElseIfBlock: ast::EquationIfBlock = {
+pub EquationElseIfBlock: node::EquationIfBlock = {
     <left: @L> "elseif" <cond:Expression> "then"
     <eqs:TerminatedList<Equation, ";">> <right: @R> => {
         let id = context.new_id();
-        ast::EquationIfBlock {
-            node_data: NodeData::new(id, left, right),
+        node::EquationIfBlock {
+            node_data: part::NodeData::new(id, left, right),
             cond, eqs
         }
     }
 }
 
-pub EquationElseBlock: Vec<ast::Equation> = {
+pub EquationElseBlock: Vec<node::Equation> = {
     "else" <eqs:TerminatedList<Equation, ";">> => {
         eqs
     }
@@ -944,25 +930,25 @@ pub EquationElseBlock: Vec<ast::Equation> = {
 //✅      { statement ";" }
 //✅    ]
 //✅    end if
-pub StatementIf: ast::StatementIf = {
+pub StatementIf: node::StatementIf = {
     <left: @L> "if" <if_cond:Expression> "then"
     <then_stmts:TerminatedList<Statement, ";">>
     <else_if_blocks: StatementElseIfBlock*>
     <else_stmts: StatementElseBlock?>
     "end" "if" <description: Description> <right: @R> => {
         let id = context.new_id();
-        let mut if_blocks = Vec::<ast::StatementIfBlock>::new();
+        let mut if_blocks = Vec::<node::StatementIfBlock>::new();
         if_blocks.push(
-            ast::StatementIfBlock {
-                node_data: NodeData::new(context.new_id(), left, right),
+            node::StatementIfBlock {
+                node_data: part::NodeData::new(context.new_id(), left, right),
                 cond: if_cond,
                 stmts: then_stmts,
             }
         );
         if_blocks.extend(else_if_blocks);
 
-        ast::StatementIf {
-            node_data: NodeData::new(id, left, right),
+        node::StatementIf {
+            node_data: part::NodeData::new(id, left, right),
             if_blocks,
             else_stmts: else_stmts.unwrap_or(Vec::new()),
             description,
@@ -970,18 +956,18 @@ pub StatementIf: ast::StatementIf = {
     }
 }
 
-pub StatementElseIfBlock: ast::StatementIfBlock = {
+pub StatementElseIfBlock: node::StatementIfBlock = {
     <left: @L> "elseif" <cond:Expression> "then"
     <stmts:TerminatedList<Statement, ";">> <right: @R> => {
         let id = context.new_id();
-        ast::StatementIfBlock {
-            node_data: NodeData::new(id, left, right),
+        node::StatementIfBlock {
+            node_data: part::NodeData::new(id, left, right),
             cond, stmts
         }
     }
 }
 
-pub StatementElseBlock: Vec<ast::Statement> = {
+pub StatementElseBlock: Vec<node::Statement> = {
     "else" <stmts:TerminatedList<Statement, ";">> => {
         stmts
     }
@@ -991,14 +977,14 @@ pub StatementElseBlock: Vec<ast::Statement> = {
 //✅    for for-indices loop
 //✅      { some-equation ";" }
 //✅    end for
-pub EquationFor: ast::EquationFor = {
+pub EquationFor: node::EquationFor = {
     <left: @L> "for" <indices: ForIndices> "loop"
     <eqs: TerminatedList<Equation, ";">>
     "end" "for" <description: Description> <right: @R>
     => {
         let id = context.new_id();
-        ast::EquationFor {
-            node_data: NodeData::new(id, left, right),
+        node::EquationFor {
+            node_data: part::NodeData::new(id, left, right),
             indices,
             eqs,
             description,
@@ -1010,14 +996,14 @@ pub EquationFor: ast::EquationFor = {
 //✅    for for-indices loop
 //✅      { statement ";" }
 //✅    end for
-pub StatementFor: ast::StatementFor = {
+pub StatementFor: node::StatementFor = {
     <left: @L> "for" <indices: ForIndices> "loop"
     <stmts: TerminatedList<Statement, ";">>
     "end" "for" <description: Description> <right: @R>
     => {
         let id = context.new_id();
-        ast::StatementFor {
-            node_data: NodeData::new(id, left, right),
+        node::StatementFor {
+            node_data: part::NodeData::new(id, left, right),
             indices,
             stmts,
             description,
@@ -1027,17 +1013,17 @@ pub StatementFor: ast::StatementFor = {
 
 //✅ for-indices :
 //✅    for-index { "," for-index }
-ForIndices: Vec<ast::ForIndex> = {
+ForIndices: Vec<node::ForIndex> = {
     <indices: SeparatedList<ForIndex, ",">> => indices
 }
 
 //✅ for-index :
 //✅    IDENT [ in expression ]
-pub ForIndex: ast::ForIndex = {
+pub ForIndex: node::ForIndex = {
     <left: @L> <ident: IDENT> <in_expr:("in" <Expression>)?> <right: @R> => {
         let id = context.new_id();
-        ast::ForIndex {
-            node_data: NodeData::new(id, left, right),
+        node::ForIndex {
+            node_data: part::NodeData::new(id, left, right),
             ident,
             in_expr,
         }
@@ -1048,14 +1034,14 @@ pub ForIndex: ast::ForIndex = {
 //✅    while expression loop
 //✅      { statement ";" }
 //✅    end while
-pub StatementWhile: ast::StatementWhile = {
+pub StatementWhile: node::StatementWhile = {
     <left: @L> "while" <cond: Expression> "loop"
     <stmts: TerminatedList<Statement, ";">>
     "end" "while" <right: @R>
     => {
         let id = context.new_id();
-        ast::StatementWhile {
-            node_data: NodeData::new(id, left, right),
+        node::StatementWhile {
+            node_data: part::NodeData::new(id, left, right),
             cond,
             stmts,
             description: None,
@@ -1081,14 +1067,14 @@ pub StatementWhile: ast::StatementWhile = {
 
 //✅ connect-equation :
 //✅    connect "(" component-reference "," component-reference ")"
-pub EquationConnect: ast::EquationConnect = {
+pub EquationConnect: node::EquationConnect = {
     <left: @L> "connect" "("
     <lhs: ComponentReference> ","
     <rhs: ComponentReference> ")"
     <description: Description> <right: @R> => {
         let id = context.new_id();
-        ast::EquationConnect {
-            node_data: NodeData::new(id, left, right),
+        node::EquationConnect {
+            node_data: part::NodeData::new(id, left, right),
             lhs,
             rhs,
             description,
@@ -1109,30 +1095,30 @@ pub EquationConnect: ast::EquationConnect = {
 //🟨  simple-expression :
 //✅     logical-expression
 //🟥     [ ":" logical-expression [ ":" logical-expression ] ]
-pub Expression: ast::Expression = {
+pub Expression: node::Expression = {
     <expr: ExpressionSimple> =>  expr,
-    <expr: ExpressionIf> => ast::Expression::If(expr),
+    <expr: ExpressionIf> => node::Expression::If(expr),
 }
 
-pub ExpressionIf: ast::ExpressionIf = {
+pub ExpressionIf: node::ExpressionIf = {
     <left: @L> "if" <if_cond:ExpressionSimple> "then"
     <then_expr:ExpressionSimple>
     <else_if_blocks: ExpressionElseIfBlock*>
     <else_expr: ExpressionElseBlock?> <right: @R>
      => {
         let id = context.new_id();
-        let mut if_blocks = Vec::<ast::ExpressionIfBlock>::new();
+        let mut if_blocks = Vec::<node::ExpressionIfBlock>::new();
         if_blocks.push(
-            ast::ExpressionIfBlock {
-                node_data: NodeData::new(context.new_id(), left, right),
+            node::ExpressionIfBlock {
+                node_data: part::NodeData::new(context.new_id(), left, right),
                 cond: if_cond,
                 expr: then_expr,
             }
         );
         if_blocks.extend(else_if_blocks);
 
-        ast::ExpressionIf {
-            node_data: NodeData::new(id, left, right),
+        node::ExpressionIf {
+            node_data: part::NodeData::new(id, left, right),
             if_blocks,
             else_expr: Box::new(else_expr),
         }
@@ -1140,17 +1126,17 @@ pub ExpressionIf: ast::ExpressionIf = {
 }
 
 
-pub ExpressionElseIfBlock: ast::ExpressionIfBlock = {
+pub ExpressionElseIfBlock: node::ExpressionIfBlock = {
     <left: @L> "elseif" <cond:ExpressionSimple> "then" <expr:ExpressionSimple> <right: @R> => {
         let id = context.new_id();
-        ast::ExpressionIfBlock {
-            node_data: NodeData::new(id, left, right),
+        node::ExpressionIfBlock {
+            node_data: part::NodeData::new(id, left, right),
             cond, expr
         }
     }
 }
 
-pub ExpressionElseBlock: ast::Expression = {
+pub ExpressionElseBlock: node::Expression = {
     "else" <expr:ExpressionSimple> => {
         expr
     }
@@ -1160,39 +1146,39 @@ pub ParenthesisExpression = ExpressionSimple;
 
 //✅ relational-operator :
 //✅    "<" | "<=" | ">" | ">=" | "==" | "<>"
-RelationalOperator : ast::BinaryOp = {
-    "<" => ast::BinaryOp::LessThan,
-    "<=" => ast::BinaryOp::LessThanOrEqual,
-    ">" => ast::BinaryOp::GreaterThan,
-    ">=" => ast::BinaryOp::GreaterThanOrEqual,
-    "==" => ast::BinaryOp::Equal,
-    "<>" => ast::BinaryOp::NotEqual,
+RelationalOperator : part::BinaryOp = {
+    "<" => part::BinaryOp::LessThan,
+    "<=" => part::BinaryOp::LessThanOrEqual,
+    ">" => part::BinaryOp::GreaterThan,
+    ">=" => part::BinaryOp::GreaterThanOrEqual,
+    "==" => part::BinaryOp::Equal,
+    "<>" => part::BinaryOp::NotEqual,
 }
 
 //✅ add-operator :
 //✅    "+" | "-" | ".+" | ".-"
-AddBinaryOperator : ast::BinaryOp = {
-    "+" => ast::BinaryOp::Add,
-    "-" => ast::BinaryOp::Sub,
-    ".+" => ast::BinaryOp::ElemAdd,
-    ".-" => ast::BinaryOp::ElemSub,
+AddBinaryOperator : part::BinaryOp = {
+    "+" => part::BinaryOp::Add,
+    "-" => part::BinaryOp::Sub,
+    ".+" => part::BinaryOp::ElemAdd,
+    ".-" => part::BinaryOp::ElemSub,
 }
-AddUnaryOperator : ast::UnaryOp = {
-    "-" => ast::UnaryOp::Negative,
+AddUnaryOperator : part::UnaryOp = {
+    "-" => part::UnaryOp::Negative,
 }
 
-FactorOperator : ast::BinaryOp = {
-    "^" => ast::BinaryOp::Exp,
-    ".^" => ast::BinaryOp::ElemExp,
+FactorOperator : part::BinaryOp = {
+    "^" => part::BinaryOp::Exp,
+    ".^" => part::BinaryOp::ElemExp,
 }
 
 //✅ mul-operator :
 //✅    "*" | "/" | ".*" | "./"
-MulOperator : ast::BinaryOp = {
-    "*" => ast::BinaryOp::Mul,
-    "/" => ast::BinaryOp::Div,
-    ".*" => ast::BinaryOp::ElemMul,
-    "./" => ast::BinaryOp::ElemDiv,
+MulOperator : part::BinaryOp = {
+    "*" => part::BinaryOp::Mul,
+    "/" => part::BinaryOp::Div,
+    ".*" => part::BinaryOp::ElemMul,
+    "./" => part::BinaryOp::ElemDiv,
 }
 
 FuncKeyword: String = {
@@ -1201,15 +1187,15 @@ FuncKeyword: String = {
     // <"pure"> => String::from("pure"),
 };
 
-ExpressionSimple: ast::Expression = {
+ExpressionSimple: node::Expression = {
 //✅ simple-expression :
 //✅    logical-expression [ ":" logical-expression [ ":" logical-expression ] ]
     #[precedence(level="11")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> ":" <rhs:ExpressionSimple> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
-            op: ast::BinaryOp::Range,
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
+            op: part::BinaryOp::Range,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
@@ -1219,9 +1205,9 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="10")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> "or" <rhs:ExpressionSimple> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
-            op: ast::BinaryOp::Or,
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
+            op: part::BinaryOp::Or,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
@@ -1231,9 +1217,9 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="9")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> "and" <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
-            op: ast::BinaryOp::Add,
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
+            op: part::BinaryOp::Add,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
         })
@@ -1243,9 +1229,9 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="8")]
     <left: @L> "not" <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Unary(ast::Unary {
-            node_data: NodeData::new(id, left, right),
-            op: ast::UnaryOp::Not,
+        node::Expression::Unary(node::Unary {
+            node_data: part::NodeData::new(id, left, right),
+            op: part::UnaryOp::Not,
             rhs: Box::new(rhs),
         })
     },
@@ -1254,8 +1240,8 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="7")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:RelationalOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
@@ -1266,8 +1252,8 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="6")] #[assoc(side="right")]
     <left: @L> <op:AddUnaryOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Unary(ast::Unary {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Unary(node::Unary {
+            node_data: part::NodeData::new(id, left, right),
             op,
             rhs: Box::new(rhs),
         })
@@ -1275,8 +1261,8 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="5")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:AddBinaryOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
@@ -1287,8 +1273,8 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="4")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op: MulOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
@@ -1299,8 +1285,8 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="3")] #[assoc(side="left")]
     <left: @L> <lhs:ExpressionSimple> <op:FactorOperator> <rhs:ExpressionSimple> <right: @R>=> {
         let id = context.new_id();
-        ast::Expression::Binary(ast::Binary {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Binary(node::Binary {
+            node_data: part::NodeData::new(id, left, right),
             op,
             lhs: Box::new(lhs),
             rhs: Box::new(rhs),
@@ -1323,61 +1309,61 @@ ExpressionSimple: ast::Expression = {
     #[precedence(level="0")]
     <left: @L> "(" <rhs:ParenthesisExpression> ")" <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Unary(ast::Unary {
-            node_data: NodeData::new(id, left, right),
-            op: ast::UnaryOp::Paren,
+        node::Expression::Unary(node::Unary {
+            node_data: part::NodeData::new(id, left, right),
+            op: part::UnaryOp::Paren,
             rhs: Box::new(rhs),
         })
     },
     <left: @L> "{" <args:SeparatedList<Expression, ",">> "}" <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Array(ast::Array {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Array(node::Array {
+            node_data: part::NodeData::new(id, left, right),
             args
         })
     },
     <left: @L> <val:"UNSIGNED-INTEGER"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::UnsignedInteger(ast::UnsignedInteger {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::UnsignedInteger(node::UnsignedInteger {
+            node_data: part::NodeData::new(id, left, right),
             val,
         })
     },
     <left: @L> <val:"UNSIGNED-REAL"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::UnsignedReal(ast::UnsignedReal {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::UnsignedReal(node::UnsignedReal {
+            node_data: part::NodeData::new(id, left, right),
             val,
         })
     },
     <left: @L> <val:"boolean"> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::Boolean(ast::Boolean {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::Boolean(node::Boolean {
+            node_data: part::NodeData::new(id, left, right),
             val,
         })
     },
     <comp:ComponentReference> => {
-        ast::Expression::Ref(comp)
+        node::Expression::Ref(comp)
     },
     #[precedence(level="1")]
     <left: @L> <comp:ComponentReference> <args:FunctionCallArguments> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::FunctionCall(ast::FunctionCall {
-            node_data: NodeData::new(id, left, right),
+        node::Expression::FunctionCall(node::FunctionCall {
+            node_data: part::NodeData::new(id, left, right),
             comp,
             args,
         })
     },
     <left: @L> <func: FuncKeyword> <args:FunctionCallArguments> <right: @R> => {
         let id = context.new_id();
-        ast::Expression::FunctionCall(ast::FunctionCall {
-            node_data: NodeData::new(id, left, right),
-            comp: ast::ComponentReference{
-                node_data: NodeData::new(context.new_id(), left, right),
+        node::Expression::FunctionCall(node::FunctionCall {
+            node_data: part::NodeData::new(id, left, right),
+            comp:  node::ComponentReference{
+                node_data: part::NodeData::new(context.new_id(), left, right),
                 local: false,
-                parts: vec![ast::RefPart{
-                    node_data: NodeData::new(context.new_id(), left, right),
+                parts: vec![node::RefPart{
+                    node_data: part::NodeData::new(context.new_id(), left, right),
                     name: func,
                     array_subscripts: Vec::new(),
                 }]
@@ -1393,10 +1379,11 @@ ExpressionSimple: ast::Expression = {
 
 //✅ type-specifier :
 //✅    ["."] name
-pub TypeSpecifier: ast::TypeSpecifier = {
+pub TypeSpecifier: node::TypeSpecifier = {
     <left: @L> <local: "."?> <name: Name> <right: @R> => {
         let id = context.new_id();
-        ast::TypeSpecifier{
+        node::TypeSpecifier{
+            node_data: part::NodeData::new(id, left, right),
             local: local.is_some(),
             name,
         }
@@ -1405,11 +1392,11 @@ pub TypeSpecifier: ast::TypeSpecifier = {
 
 //✅ name :
 //✅    IDENT { "." IDENT }
-pub Name: ast::Name = {
+pub Name: part::Name = {
     <first:IDENT> <remaining: ("." <IDENT>)*> => {
         let mut v = vec![first];
         v.extend(remaining);
-        ast::Name {
+        part::Name {
             parts: v
         }
     }
@@ -1417,21 +1404,21 @@ pub Name: ast::Name = {
 
 //✅ component-reference :
 //✅    [ "." ] IDENT [ array-subscripts ] { "." IDENT [ array-subscripts ] }
-pub ComponentReference: ast::ComponentReference = {
+pub ComponentReference:  node::ComponentReference = {
     <left: @L> <local: "."?> <parts: SeparatedListMinOne<RefPart, ".">> <right: @R> => {
         let id = context.new_id();
-        ast::ComponentReference{
-            node_data: NodeData::new(id, left, right),
+         node::ComponentReference{
+            node_data: part::NodeData::new(id, left, right),
             local: local.is_some(),
             parts,
         }
     },
 }
-pub RefPart: ast::RefPart = {
+pub RefPart: node::RefPart = {
     <left: @L> <name:IDENT> <array_subscripts:ArraySubscripts?> <right: @R> => {
         let id = context.new_id();
-        ast::RefPart {
-            node_data: NodeData::new(id, left, right),
+        node::RefPart {
+            node_data: part::NodeData::new(id, left, right),
             name,
             array_subscripts: array_subscripts.unwrap_or(Vec::new()),
         }
@@ -1444,7 +1431,7 @@ pub RefPart: ast::RefPart = {
 
 //✅ function-call-args :
 //✅    "(" [ function-arguments ] ")"
-pub FunctionCallArguments: Vec<ast::Expression> = {
+pub FunctionCallArguments: Vec<node::Expression> = {
     <left: @L> "(" <args:SeparatedList<Expression, ",">> ")" <right: @R> => {
         args
     }
@@ -1483,30 +1470,30 @@ pub FunctionCallArguments: Vec<ast::Expression> = {
 
 //✅ array-subscripts :
 //✅    "[" subscript { "," subscript } "]"
-pub ArraySubscripts: Vec<ast::Subscript> = {
+pub ArraySubscripts: Vec<node::Subscript> = {
     "[" <subscripts: SeparatedList<Subscript, ",">> "]" => {
         subscripts
     }
 }
 //✅ subscript :
 //✅    ":" | expression
-pub Subscript: ast::Subscript = {
-    <sub: SubscriptRange> => ast::Subscript::Range(sub),
-    <sub: Expression> => ast::Subscript::Expression(sub),
+pub Subscript: node::Subscript = {
+    <sub: SubscriptRange> => node::Subscript::Range(sub),
+    <sub: Expression> => node::Subscript::Expression(sub),
 }
 
-pub SubscriptRange: ast::SubscriptRange = {
+pub SubscriptRange: node::SubscriptRange = {
     <left: @L> ":" <right: @R> => {
         let id = context.new_id();
-        ast::SubscriptRange {
-            node_data: NodeData::new(id, left, right),
+        node::SubscriptRange {
+            node_data: part::NodeData::new(id, left, right),
         }
     },
 }
 
 //✅ description :
 //✅    description-string [ annotation-clause ]
-pub Description: Option<ast::Description> = {
+pub Description: Option<node::Description> = {
     <left: @L> <description_string: DescriptionString>
     <annotation: AnnotationClause?> <right: @R>
     => {
@@ -1514,8 +1501,8 @@ pub Description: Option<ast::Description> = {
             None
         } else {
             let id = context.new_id();
-            Some(ast::Description {
-                node_data: NodeData::new(id, left, right),
+            Some(node::Description {
+                node_data: part::NodeData::new(id, left, right),
                 strings: description_string.parts,
                 annotation: annotation.unwrap_or(Vec::new()),
             })
@@ -1525,9 +1512,9 @@ pub Description: Option<ast::Description> = {
 
 //✅ description-string :
 //✅    [ STRING { "+" STRING } ]
-pub DescriptionString: ast::DescriptionString = {
+pub DescriptionString: part::DescriptionString = {
     <s:DescriptionStringPart?> => {
-        ast::DescriptionString {
+        part::DescriptionString {
             parts: s.unwrap_or(Vec::new())
         }
     }
@@ -1544,7 +1531,7 @@ DescriptionStringPart: Vec<String> = {
 
 //✅ annotation-clause :
 //✅    annotation class-modification
-pub AnnotationClause: Vec<ast::Argument> = {
+pub AnnotationClause: Vec<node::Argument> = {
     "annotation" <modification:ModificationClass> => {
         modification
     },

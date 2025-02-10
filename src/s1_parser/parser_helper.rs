@@ -1,10 +1,13 @@
+//! This module contains parser helper functions.
+//!
+
 use crate::s0_lexer::lexer::Lexer;
 use crate::s0_lexer::tokens::LexicalError;
 
-use crate::s1_parser::ast;
+use crate::s1_parser::ast::node;
 use crate::s1_parser::modelica::StoredDefinitionParser;
 
-use crate::s1_parser::ast::ParserContext;
+use super::ast::part::ParserContext;
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
@@ -12,12 +15,12 @@ use lalrpop_util::ParseError;
 use md5;
 use std::process;
 
-pub fn parse_file(filename: &str) -> ast::StoredDefinition {
+pub fn parse_file(filename: &str) -> node::StoredDefinition {
     let file_txt = std::fs::read_to_string(filename).expect("failed to read file");
     parse(filename, &file_txt)
 }
 
-pub fn parse(filename: &str, file_txt: &str) -> ast::StoredDefinition {
+pub fn parse(filename: &str, file_txt: &str) -> node::StoredDefinition {
     let mut files = SimpleFiles::new();
     let file_id = files.add(filename, file_txt);
     let file = files.get(file_id).expect("failed to get file id");
